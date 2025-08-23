@@ -577,6 +577,30 @@ def save_inventory_snapshot():
         records_updated = usage_calculator.update_daily_usage_file()
         print(f"Updated {records_updated} usage records")
         
+        # Update inventory_items.json current_stock with latest snapshot data
+        try:
+            print("Synchronizing inventory_items.json with latest snapshot...")
+            with open('sample_data/inventory_items.json', 'r') as f:
+                inventory_items = json.load(f)
+            
+            # Update current_stock from the latest inventory snapshot
+            for item_data in inventory:
+                for item in inventory_items:
+                    if item['item_id'] == item_data['item_id']:
+                        old_stock = item['current_stock']
+                        item['current_stock'] = item_data['stock_level']
+                        print(f"Updated {item['name']} current_stock: {old_stock} → {item_data['stock_level']}")
+                        break
+            
+            # Save updated inventory_items.json
+            with open('sample_data/inventory_items.json', 'w') as f:
+                json.dump(inventory_items, f, indent=2)
+            
+            print("Successfully synchronized inventory_items.json with latest snapshot")
+            
+        except Exception as e:
+            print(f"Warning: Could not update inventory_items.json: {e}")
+        
         # Refresh forecasting engine with new data
         try:
             global forecast_engine

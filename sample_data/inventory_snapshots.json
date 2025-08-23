@@ -158,5 +158,21 @@
     "waste_amount": 0.1,
     "deliveries_received": 0.0,
     "notes": "Still good supply"
+  },
+  {
+    "date": "2025-08-24",
+    "item_id": "ITEM002",
+    "stock_level": 1.8,
+    "waste_amount": 0.1,
+    "deliveries_received": 0.0,
+    "notes": "Testing sync - even lower"
+  },
+  {
+    "date": "2025-08-24",
+    "item_id": "ITEM003",
+    "stock_level": 2.9,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Testing sync - lower"
   }
 ]
