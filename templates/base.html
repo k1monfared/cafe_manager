@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cafe Supply Manager{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #6f4e37;
+        }
+        .sidebar .nav-link {
+            color: #f8f9fa;
+            padding: 0.75rem 1rem;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #8b6b3c;
+            color: white;
+        }
+        .sidebar .nav-link.active {
+            background-color: #5a3e2b;
+            color: white;
+        }
+        .main-content {
+            padding: 2rem;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .urgency-critical { color: #dc3545; font-weight: bold; }
+        .urgency-warning { color: #fd7e14; font-weight: bold; }
+        .urgency-normal { color: #198754; }
+        .urgency-stock_up { color: #0dcaf0; }
+        .brand {
+            color: #f8f9fa;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 1rem;
+            border-bottom: 1px solid #8b6b3c;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar">
+                <div class="brand">
+                    <i class="bi bi-cup-hot"></i> Cafe Supply Manager
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a class="nav-link {% if active_page == 'recommendations' %}active{% endif %}" href="/recommendations">
+                        <i class="bi bi-list-check"></i> Order Recommendations
+                    </a>
+                    <a class="nav-link {% if active_page == 'inventory' %}active{% endif %}" href="/inventory">
+                        <i class="bi bi-box-seam"></i> Current Inventory
+                    </a>
+                    <a class="nav-link {% if active_page == 'usage-analysis' %}active{% endif %}" href="/usage-analysis">
+                        <i class="bi bi-graph-up"></i> Usage Analysis
+                    </a>
+                    <a class="nav-link {% if active_page == 'suppliers' %}active{% endif %}" href="/suppliers">
+                        <i class="bi bi-building"></i> Suppliers
+                    </a>
+                    <a class="nav-link {% if active_page == 'sheets' %}active{% endif %}" href="/sheets">
+                        <i class="bi bi-file-spreadsheet"></i> Google Sheets
+                    </a>
+                    <a class="nav-link {% if active_page == 'drive' %}active{% endif %}" href="/drive">
+                        <i class="bi bi-cloud"></i> Google Drive
+                    </a>
+                    <a class="nav-link {% if active_page == 'help' %}active{% endif %}" href="/help">
+                        <i class="bi bi-question-circle"></i> Help
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 main-content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Utility function to format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        // Utility function to format urgency level
+        function getUrgencyClass(urgency) {
+            return `urgency-${urgency}`;
+        }
+
+        function getUrgencyIcon(urgency) {
+            switch(urgency) {
+                case 'critical': return '<i class="bi bi-exclamation-triangle-fill"></i>';
+                case 'warning': return '<i class="bi bi-exclamation-triangle"></i>';
+                case 'normal': return '<i class="bi bi-check-circle"></i>';
+                case 'stock_up': return '<i class="bi bi-arrow-up-circle"></i>';
+                default: return '<i class="bi bi-circle"></i>';
+            }
+        }
+
+        // Show loading spinner
+        function showLoading(containerId) {
+            document.getElementById(containerId).innerHTML = 
+                '<div class="loading"><i class="bi bi-hourglass-split"></i> Loading...</div>';
+        }
+
+        // Show error message
+        function showError(containerId, message) {
+            document.getElementById(containerId).innerHTML = 
+                `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${message}</div>`;
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

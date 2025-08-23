@@ -1,0 +1,11 @@
+Item_Name,Category,Subcategory,Unit,Current_Stock,Min_Threshold,Max_Capacity,Cost_Per_Unit,Supplier,Lead_Time_Days,Shelf_Life_Days,Storage_Requirements,Last_Updated
+Ethiopian Yirgacheffe - Medium Roast,coffee_beans,arabica_beans,lbs,25,10,80,12.50,Royal Coffee Importers,5,365,Cool dry place,2025-08-23
+Colombian Supremo - Dark Roast,coffee_beans,arabica_beans,lbs,18,8,60,10.75,Java Bean Plus,3,365,Cool dry place,2025-08-23
+House Blend - Light Roast,coffee_beans,blend,lbs,32,15,100,8.25,Java Bean Plus,3,365,Cool dry place,2025-08-23
+Whole Milk,dairy,milk,gallons,12,6,30,4.25,Metro Dairy Distributors,1,10,Refrigerated 35-38°F,2025-08-23
+Oat Milk,dairy,alt_milk,half_gallons,8,4,20,3.75,Metro Dairy Distributors,1,14,Refrigerated 35-38°F,2025-08-23
+12oz Paper Cups,supplies,cups,cases,3,2,12,42.50,Pacific Paper Supply,7,730,Dry storage,2025-08-23
+16oz Paper Cups,supplies,cups,cases,2,1,8,48.75,Pacific Paper Supply,7,730,Dry storage,2025-08-23
+12oz Cup Lids,supplies,lids,cases,2,1,10,35.25,Pacific Paper Supply,7,730,Dry storage,2025-08-23
+Vanilla Syrup,syrups,flavoring,bottles,4,2,12,8.50,Artisan Syrup Co,4,180,Room temperature,2025-08-23
+Caramel Syrup,syrups,flavoring,bottles,3,2,12,9.25,Artisan Syrup Co,4,180,Room temperature,2025-08-23

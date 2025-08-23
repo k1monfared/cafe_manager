@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% set active_page = "suppliers" %}
+
+{% block title %}Suppliers - Cafe Supply Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-building"></i> Suppliers</h1>
+    <button class="btn btn-primary" onclick="loadSuppliers()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            <strong>Supplier Management:</strong> Keep track of your suppliers' contact information, delivery times, and performance ratings.
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Cards -->
+<div class="row" id="suppliers-container">
+    <div class="loading"><i class="bi bi-hourglass-split"></i> Loading suppliers...</div>
+</div>
+
+<!-- Supplier Performance Summary -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Supplier Performance Summary</h5>
+            </div>
+            <div class="card-body" id="performance-summary">
+                <!-- Performance summary will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allSuppliers = [];
+
+function loadSuppliers() {
+    showLoading('suppliers-container');
+    
+    fetch('/api/suppliers')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                allSuppliers = data.suppliers;
+                displaySuppliers();
+                displayPerformanceSummary();
+            } else {
+                showError('suppliers-container', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading suppliers:', error);
+            showError('suppliers-container', 'Failed to load suppliers');
+        });
+}
+
+function displaySuppliers() {
+    const container = document.getElementById('suppliers-container');
+    
+    if (allSuppliers.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-muted">No suppliers found</div>';
+        return;
+    }
+    
+    let html = '';
+    
+    allSuppliers.forEach(supplier => {
+        // Convert reliability rating to stars
+        const stars = '★'.repeat(supplier.reliability_rating) + '☆'.repeat(5 - supplier.reliability_rating);
+        
+        // Determine lead time badge color
+        let leadTimeBadge = 'bg-success';
+        if (supplier.lead_time_days > 7) {
+            leadTimeBadge = 'bg-warning';
+        } else if (supplier.lead_time_days > 14) {
+            leadTimeBadge = 'bg-danger';
+        }
+        
+        // Payment terms badge
+        let paymentBadge = 'bg-secondary';
+        if (supplier.payment_terms === 'Net 7') {
+            paymentBadge = 'bg-success';
+        } else if (supplier.payment_terms === 'Net 15') {
+            paymentBadge = 'bg-primary';
+        }
+        
+        html += `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">${supplier.name}</h6>
+                        <span class="text-warning" title="Reliability Rating">${stars}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-12">
+                                <small class="text-muted">Specialty</small>
+                                <div class="fw-bold text-primary">${supplier.specialty}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">Lead Time</small>
+                                <div>
+                                    <span class="badge ${leadTimeBadge}">${supplier.lead_time_days} days</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Payment Terms</small>
+                                <div>
+                                    <span class="badge ${paymentBadge}">${supplier.payment_terms}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <small class="text-muted">Minimum Order</small>
+                                <div class="fw-bold">${formatCurrency(supplier.minimum_order_value)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-12">
+                                <small class="text-muted">Contact</small>
+                                <div>
+                                    <i class="bi bi-telephone"></i> 
+                                    <a href="tel:${supplier.contact_phone}">${supplier.contact_phone}</a>
+                                </div>
+                                <div>
+                                    <i class="bi bi-envelope"></i> 
+                                    <a href="mailto:${supplier.contact_email}">${supplier.contact_email}</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="contactSupplier('${supplier.supplier_id}')">
+                                <i class="bi bi-telephone"></i> Contact
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function displayPerformanceSummary() {
+    const container = document.getElementById('performance-summary');
+    
+    if (allSuppliers.length === 0) {
+        container.innerHTML = '<div class="text-muted">No supplier data available</div>';
+        return;
+    }
+    
+    // Calculate summary statistics
+    const totalSuppliers = allSuppliers.length;
+    const avgReliability = allSuppliers.reduce((sum, s) => sum + s.reliability_rating, 0) / totalSuppliers;
+    const avgLeadTime = allSuppliers.reduce((sum, s) => sum + s.lead_time_days, 0) / totalSuppliers;
+    const highReliabilitySuppliers = allSuppliers.filter(s => s.reliability_rating >= 4).length;
+    
+    // Find fastest and most reliable supplier
+    const fastestSupplier = allSuppliers.reduce((fastest, current) => 
+        current.lead_time_days < fastest.lead_time_days ? current : fastest
+    );
+    
+    const mostReliableSupplier = allSuppliers.reduce((reliable, current) => 
+        current.reliability_rating > reliable.reliability_rating ? current : reliable
+    );
+    
+    let html = `
+        <div class="row text-center mb-4">
+            <div class="col-md-3">
+                <h4 class="text-primary">${totalSuppliers}</h4>
+                <p class="text-muted mb-0">Total Suppliers</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-success">${avgReliability.toFixed(1)}/5</h4>
+                <p class="text-muted mb-0">Avg Reliability</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-info">${avgLeadTime.toFixed(1)} days</h4>
+                <p class="text-muted mb-0">Avg Lead Time</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-warning">${highReliabilitySuppliers}</h4>
+                <p class="text-muted mb-0">High Reliability (4+)</p>
+            </div>
+        </div>
+    `;
+    
+    html += `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-lightning"></i> Fastest Delivery</h6>
+                    <strong>${fastestSupplier.name}</strong> - ${fastestSupplier.lead_time_days} days
+                    <br><small class="text-muted">${fastestSupplier.specialty}</small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="alert alert-primary">
+                    <h6><i class="bi bi-star"></i> Most Reliable</h6>
+                    <strong>${mostReliableSupplier.name}</strong> - ${mostReliableSupplier.reliability_rating}/5 stars
+                    <br><small class="text-muted">${mostReliableSupplier.specialty}</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Supplier breakdown by specialty
+    const specialties = {};
+    allSuppliers.forEach(supplier => {
+        if (!specialties[supplier.specialty]) {
+            specialties[supplier.specialty] = [];
+        }
+        specialties[supplier.specialty].push(supplier);
+    });
+    
+    html += `
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Suppliers by Specialty</h6>
+                <div class="row">
+    `;
+    
+    Object.entries(specialties).forEach(([specialty, suppliers]) => {
+        html += `
+            <div class="col-md-6 mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>${specialty}</span>
+                    <span class="badge bg-secondary">${suppliers.length}</span>
+                </div>
+                <small class="text-muted">${suppliers.map(s => s.name).join(', ')}</small>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function contactSupplier(supplierId) {
+    const supplier = allSuppliers.find(s => s.supplier_id === supplierId);
+    if (supplier) {
+        const message = `Contact ${supplier.name}:\n\nPhone: ${supplier.contact_phone}\nEmail: ${supplier.contact_email}\n\nSpecialty: ${supplier.specialty}\nLead Time: ${supplier.lead_time_days} days\nMinimum Order: ${formatCurrency(supplier.minimum_order_value)}`;
+        alert(message);
+        
+        // In a full implementation, this could:
+        // - Open email client with pre-filled email
+        // - Log the contact attempt
+        // - Show a contact form
+    }
+}
+
+// Load suppliers when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadSuppliers();
+});
+</script>
+{% endblock %}

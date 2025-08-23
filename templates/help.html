@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% set active_page = "help" %}
+
+{% block title %}Help - Cafe Supply Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-question-circle"></i> Help & Instructions</h1>
+        <p class="lead">Learn how to use your Cafe Supply Management system effectively</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Quick Start Guide -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-play-circle"></i> Quick Start Guide</h3>
+            </div>
+            <div class="card-body">
+                <h5>1. Understanding Your Dashboard</h5>
+                <p>The dashboard gives you an overview of your inventory status:</p>
+                <ul>
+                    <li><strong>Critical Items</strong> (red): Order immediately</li>
+                    <li><strong>Warning Items</strong> (orange): Order soon</li>
+                    <li><strong>Normal Items</strong> (green): On schedule</li>
+                    <li><strong>Stock Up Items</strong> (blue): Good time to bulk order</li>
+                </ul>
+
+                <h5 class="mt-4">2. Reading Order Recommendations</h5>
+                <p>The system analyzes your usage patterns and tells you:</p>
+                <ul>
+                    <li><strong>What to order:</strong> Specific items and quantities</li>
+                    <li><strong>When to order:</strong> Based on your typical ordering frequency</li>
+                    <li><strong>Why:</strong> Clear reasoning for each recommendation</li>
+                    <li><strong>Cost estimate:</strong> Budget for your orders</li>
+                </ul>
+
+                <h5 class="mt-4">3. Managing Your Inventory</h5>
+                <p>Keep track of what you have and what you're using:</p>
+                <ul>
+                    <li>Monitor current stock levels</li>
+                    <li>See usage predictions</li>
+                    <li>Filter by category or stock level</li>
+                    <li>Get alerts for low stock items</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-gear"></i> How the System Works</h3>
+            </div>
+            <div class="card-body">
+                <h5>Smart Forecasting</h5>
+                <p>The system learns your patterns:</p>
+                <ul>
+                    <li><strong>Day-of-week patterns:</strong> Mondays vs weekends</li>
+                    <li><strong>Ordering frequency:</strong> How often you typically reorder each item</li>
+                    <li><strong>Usage trends:</strong> Growing or declining consumption</li>
+                    <li><strong>Seasonal adjustments:</strong> Future feature for seasonal items</li>
+                </ul>
+
+                <h5 class="mt-4">Key Calculations</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-calculator"></i> Reorder Point</h6>
+                            <small>Current Stock - (Daily Usage × Lead Time) = Days Until Reorder</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-success">
+                            <h6><i class="bi bi-graph-up"></i> Order Quantity</h6>
+                            <small>Based on your historical ordering patterns and max capacity</small>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4">Data Sources</h5>
+                <p>The system uses your historical data from:</p>
+                <ul>
+                    <li>Daily usage records (what you use each day)</li>
+                    <li>Order history (when and what you've ordered)</li>
+                    <li>Current inventory levels</li>
+                    <li>Supplier information (lead times, costs)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Google Sheets Integration -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-file-spreadsheet"></i> Google Sheets Integration</h3>
+            </div>
+            <div class="card-body">
+                <h5>Using the Templates</h5>
+                <p>We've provided Google Sheets templates to organize your data:</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-file-text"></i> Current_Inventory_Template.csv</h6>
+                        <p><small>Track your current stock levels and supplier info</small></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-file-text"></i> Daily_Usage_Template.csv</h6>
+                        <p><small>Record what you use each day</small></p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-file-text"></i> Order_History_Template.csv</h6>
+                        <p><small>Keep track of all orders placed and received</small></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-file-text"></i> Suppliers_Template.csv</h6>
+                        <p><small>Manage supplier contact and delivery info</small></p>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="bi bi-exclamation-triangle"></i> Converting Your Existing Sheets</h6>
+                    <p class="mb-0">If you already have disorganized Google Sheets, follow the instructions in the templates' README file to convert them to the proper format.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-tools"></i> Troubleshooting</h3>
+            </div>
+            <div class="card-body">
+                <h5>Common Issues</h5>
+                
+                <div class="accordion" id="troubleshootingAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading1">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                No recommendations are showing
+                            </button>
+                        </h2>
+                        <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                            <div class="accordion-body">
+                                <p>This usually means you need more usage history data. The system needs at least 3 data points per item to make recommendations.</p>
+                                <ul>
+                                    <li>Check that you have daily usage data in the system</li>
+                                    <li>Ensure your order history is complete</li>
+                                    <li>Verify item names match between different data files</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading2">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                Recommendations seem wrong
+                            </button>
+                        </h2>
+                        <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                            <div class="accordion-body">
+                                <p>The system learns from your data, so recommendations improve over time:</p>
+                                <ul>
+                                    <li>Check your minimum/maximum thresholds in inventory data</li>
+                                    <li>Verify supplier lead times are correct</li>
+                                    <li>Look for unusual usage spikes that might skew predictions</li>
+                                    <li>Consider seasonal factors (summer vs winter demand)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading3">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                How to handle missing data
+                            </button>
+                        </h2>
+                        <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                            <div class="accordion-body">
+                                <p>Don't worry about perfect data - rough estimates are better than no data:</p>
+                                <ul>
+                                    <li>For missing usage days, estimate based on sales volume</li>
+                                    <li>For unknown lead times, use supplier's typical delivery time</li>
+                                    <li>For minimum thresholds, use 3-7 days of typical usage</li>
+                                    <li>The system handles gaps gracefully and improves with more data</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Reference Sidebar -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-bookmark"></i> Quick Reference</h5>
+            </div>
+            <div class="card-body">
+                <h6>Urgency Levels</h6>
+                <ul class="list-unstyled">
+                    <li><span class="badge bg-danger">Critical</span> Order now</li>
+                    <li><span class="badge bg-warning">Warning</span> Order this week</li>
+                    <li><span class="badge bg-success">Normal</span> Order as planned</li>
+                    <li><span class="badge bg-info">Stock Up</span> Good bulk order opportunity</li>
+                </ul>
+
+                <hr>
+
+                <h6>Key Metrics</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Days Until Reorder:</strong> When you'll need to order</li>
+                    <li><strong>Projected Usage:</strong> Expected consumption</li>
+                    <li><strong>Reorder Frequency:</strong> Your typical pattern</li>
+                </ul>
+
+                <hr>
+
+                <h6>Data Update Schedule</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Daily:</strong> Usage amounts, waste</li>
+                    <li><strong>Weekly:</strong> Stock level checks</li>
+                    <li><strong>When ordering:</strong> Order history updates</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-lightbulb"></i> Pro Tips</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success">
+                    <h6>💡 Start Simple</h6>
+                    <small>Begin with just tracking coffee beans and milk - the items you use most. Add more items gradually.</small>
+                </div>
+
+                <div class="alert alert-info">
+                    <h6>📱 Use Your Phone</h6>
+                    <small>Quickly jot notes during the day, then transfer to your sheets later when you have time.</small>
+                </div>
+
+                <div class="alert alert-warning">
+                    <h6>🔄 Be Consistent</h6>
+                    <small>Use the same names for items across all your sheets (e.g., always "Whole Milk", not sometimes "milk - whole").</small>
+                </div>
+
+                <div class="alert alert-primary">
+                    <h6>📊 Check Weekly</h6>
+                    <small>Review recommendations weekly, but check critical alerts daily.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-envelope"></i> Need More Help?</h5>
+            </div>
+            <div class="card-body">
+                <p>If you're still having trouble:</p>
+                <ol>
+                    <li>Check the sample data files for examples</li>
+                    <li>Review the Google Sheets templates README</li>
+                    <li>Start with a simple test using just 2-3 items</li>
+                </ol>
+                
+                <p class="text-muted">This system learns and improves with more data, so don't expect perfection on day one!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-expand first accordion item
+document.addEventListener('DOMContentLoaded', function() {
+    // Optional: Add any interactive help features here
+});
+</script>
+{% endblock %}

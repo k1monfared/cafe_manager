@@ -1,0 +1,6 @@
+Date,Item_Name,Quantity_Used,Waste_Amount,Sales_Count,Weather,Day_Of_Week,Special_Events,Notes
+📝 INSTRUCTIONS: Enter date as YYYY-MM-DD (e.g. 2025-08-23),Exact item name from inventory,Amount consumed (same units as inventory),Amount spoiled/discarded,Number of drinks/items sold,Sunny/Rainy/Cloudy/etc,Monday/Tuesday/etc (optional),Holidays/events/etc (optional),Any special notes
+2025-01-01,Whole Milk,2.5,0.1,75,Sunny,Monday,,New Year's Day - busy
+2025-01-01,House Blend Coffee,1.2,0.0,85,Sunny,Monday,,Good sales day
+2025-01-01,12oz Paper Cups,0.5,0.0,75,Sunny,Monday,,Regular usage
+2025-01-02,Whole Milk,3.2,0.2,95,Cloudy,Tuesday,,High latte demand

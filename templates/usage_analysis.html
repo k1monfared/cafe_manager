@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% set active_page = "usage-analysis" %}
+
+{% block title %}Usage Analysis - Cafe Supply Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-graph-up"></i> Usage Analysis</h1>
+    <button class="btn btn-primary" onclick="loadUsagePatterns()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh Analysis
+    </button>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            <strong>Usage Patterns:</strong> Understand how your consumption varies by day of week, identify trends, and spot opportunities for optimization.
+        </div>
+    </div>
+</div>
+
+<!-- Pattern Overview Cards -->
+<div class="row mb-4" id="pattern-summary">
+    <!-- Summary cards will be populated here -->
+</div>
+
+<!-- Usage Patterns by Item -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Daily Usage Patterns</h5>
+            </div>
+            <div class="card-body" id="usage-patterns-container">
+                <div class="loading"><i class="bi bi-hourglass-split"></i> Analyzing usage patterns...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trends and Insights -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-trending-up"></i> Trends Analysis</h5>
+            </div>
+            <div class="card-body" id="trends-container">
+                <!-- Trends will be populated here -->
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Insights & Recommendations</h5>
+            </div>
+            <div class="card-body" id="insights-container">
+                <!-- Insights will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let usagePatterns = {};
+
+function loadUsagePatterns() {
+    showLoading('usage-patterns-container');
+    showLoading('pattern-summary');
+    
+    fetch('/api/usage_patterns')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                usagePatterns = data.patterns;
+                displayPatternSummary();
+                displayUsagePatterns();
+                displayTrends();
+                displayInsights();
+            } else {
+                showError('usage-patterns-container', data.error);
+                showError('pattern-summary', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading usage patterns:', error);
+            showError('usage-patterns-container', 'Failed to load usage patterns');
+            showError('pattern-summary', 'Failed to load data');
+        });
+}
+
+function displayPatternSummary() {
+    const container = document.getElementById('pattern-summary');
+    const itemCount = Object.keys(usagePatterns).length;
+    
+    // Calculate average volatility
+    const volatilities = Object.values(usagePatterns).map(p => p.volatility);
+    const avgVolatility = volatilities.length > 0 ? 
+        volatilities.reduce((a, b) => a + b, 0) / volatilities.length : 0;
+    
+    // Count trending items
+    const trendingUp = Object.values(usagePatterns).filter(p => p.trend_factor > 1.1).length;
+    const trendingDown = Object.values(usagePatterns).filter(p => p.trend_factor < 0.9).length;
+    
+    container.innerHTML = `
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-header">Items Analyzed</div>
+                <div class="card-body">
+                    <h4 class="card-title">${itemCount}</h4>
+                    <p class="card-text">Have sufficient data</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-header">Trending Up</div>
+                <div class="card-body">
+                    <h4 class="card-title">${trendingUp}</h4>
+                    <p class="card-text">Growing demand</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-header">Trending Down</div>
+                <div class="card-body">
+                    <h4 class="card-title">${trendingDown}</h4>
+                    <p class="card-text">Declining demand</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-header">Avg Volatility</div>
+                <div class="card-body">
+                    <h4 class="card-title">${(avgVolatility * 100).toFixed(0)}%</h4>
+                    <p class="card-text">Usage variability</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function displayUsagePatterns() {
+    const container = document.getElementById('usage-patterns-container');
+    
+    if (Object.keys(usagePatterns).length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="bi bi-info-circle"></i>
+                <h5>No Usage Patterns Available</h5>
+                <p>You need at least 3 days of usage data per item to see patterns.</p>
+                <p>Add more daily usage records and try again.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="row">';
+    
+    Object.entries(usagePatterns).forEach(([itemId, pattern]) => {
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        
+        // Find highest and lowest usage days
+        const usageValues = days.map(day => pattern.daily_averages[day] || 0);
+        const maxUsage = Math.max(...usageValues);
+        const minUsage = Math.min(...usageValues);
+        const highDay = days[usageValues.indexOf(maxUsage)];
+        const lowDay = days[usageValues.indexOf(minUsage)];
+        
+        // Determine trend direction
+        let trendIcon = 'bi-arrow-right';
+        let trendClass = 'text-muted';
+        let trendText = 'Stable';
+        
+        if (pattern.trend_factor > 1.1) {
+            trendIcon = 'bi-arrow-up';
+            trendClass = 'text-success';
+            trendText = 'Growing';
+        } else if (pattern.trend_factor < 0.9) {
+            trendIcon = 'bi-arrow-down';
+            trendClass = 'text-danger';
+            trendText = 'Declining';
+        }
+        
+        // Volatility assessment
+        let volatilityText = 'Predictable';
+        let volatilityClass = 'text-success';
+        if (pattern.volatility > 0.3) {
+            volatilityText = 'Highly Variable';
+            volatilityClass = 'text-warning';
+        } else if (pattern.volatility > 0.15) {
+            volatilityText = 'Somewhat Variable';
+            volatilityClass = 'text-info';
+        }
+        
+        html += `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">${pattern.item_name}</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Daily Pattern Chart -->
+                        <div class="mb-3">
+                            <small class="text-muted">Daily Usage Pattern</small>
+                            <div class="row text-center mt-2">
+                                ${days.map(day => {
+                                    const usage = pattern.daily_averages[day] || 0;
+                                    const height = maxUsage > 0 ? Math.max(10, (usage / maxUsage) * 40) : 10;
+                                    return `
+                                        <div class="col">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <div style="height: 50px; display: flex; align-items: end;">
+                                                    <div class="bg-primary" style="width: 15px; height: ${height}px; border-radius: 2px;"></div>
+                                                </div>
+                                                <small class="text-muted">${day.substring(0, 3)}</small>
+                                                <small class="fw-bold">${usage.toFixed(1)}</small>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Key Stats -->
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">Peak Day</small>
+                                <div class="fw-bold text-primary">${highDay}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Low Day</small>
+                                <div class="fw-bold text-secondary">${lowDay}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">Trend</small>
+                                <div class="${trendClass}">
+                                    <i class="bi ${trendIcon}"></i> ${trendText}
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Consistency</small>
+                                <div class="${volatilityClass}">${volatilityText}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <small class="text-muted">Trend Factor: ${pattern.trend_factor.toFixed(2)}x</small>
+                                <div class="progress mt-1" style="height: 4px;">
+                                    <div class="progress-bar ${pattern.trend_factor > 1 ? 'bg-success' : 'bg-warning'}" 
+                                         style="width: ${Math.min(100, Math.abs(pattern.trend_factor - 1) * 100)}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function displayTrends() {
+    const container = document.getElementById('trends-container');
+    
+    if (Object.keys(usagePatterns).length === 0) {
+        container.innerHTML = '<div class="text-muted">No trend data available</div>';
+        return;
+    }
+    
+    const trends = Object.entries(usagePatterns).map(([itemId, pattern]) => ({
+        name: pattern.item_name,
+        trend: pattern.trend_factor,
+        volatility: pattern.volatility
+    })).sort((a, b) => b.trend - a.trend);
+    
+    let html = '<h6>Items by Growth Trend</h6>';
+    
+    trends.forEach(item => {
+        const isGrowing = item.trend > 1.05;
+        const isDecining = item.trend < 0.95;
+        let badgeClass = 'bg-secondary';
+        let icon = 'bi-arrow-right';
+        
+        if (isGrowing) {
+            badgeClass = 'bg-success';
+            icon = 'bi-arrow-up';
+        } else if (isDecining) {
+            badgeClass = 'bg-danger';
+            icon = 'bi-arrow-down';
+        }
+        
+        html += `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>${item.name}</span>
+                <span class="badge ${badgeClass}">
+                    <i class="bi ${icon}"></i> ${((item.trend - 1) * 100).toFixed(0)}%
+                </span>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function displayInsights() {
+    const container = document.getElementById('insights-container');
+    
+    if (Object.keys(usagePatterns).length === 0) {
+        container.innerHTML = '<div class="text-muted">No insights available yet</div>';
+        return;
+    }
+    
+    const insights = [];
+    
+    // Find most volatile item
+    let mostVolatile = null;
+    let maxVolatility = 0;
+    
+    // Find fastest growing
+    let fastestGrowing = null;
+    let maxGrowth = 1;
+    
+    // Find most predictable
+    let mostPredictable = null;
+    let minVolatility = 1;
+    
+    Object.entries(usagePatterns).forEach(([itemId, pattern]) => {
+        if (pattern.volatility > maxVolatility) {
+            maxVolatility = pattern.volatility;
+            mostVolatile = pattern;
+        }
+        
+        if (pattern.trend_factor > maxGrowth) {
+            maxGrowth = pattern.trend_factor;
+            fastestGrowing = pattern;
+        }
+        
+        if (pattern.volatility < minVolatility) {
+            minVolatility = pattern.volatility;
+            mostPredictable = pattern;
+        }
+    });
+    
+    let html = '';
+    
+    if (fastestGrowing && maxGrowth > 1.1) {
+        html += `
+            <div class="alert alert-success">
+                <i class="bi bi-trending-up"></i>
+                <strong>${fastestGrowing.item_name}</strong> is your fastest growing item 
+                (+${((maxGrowth - 1) * 100).toFixed(0)}%). Consider increasing stock levels.
+            </div>
+        `;
+    }
+    
+    if (mostVolatile && maxVolatility > 0.3) {
+        html += `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>${mostVolatile.item_name}</strong> has unpredictable usage patterns. 
+                Keep extra safety stock for this item.
+            </div>
+        `;
+    }
+    
+    if (mostPredictable) {
+        html += `
+            <div class="alert alert-info">
+                <i class="bi bi-check-circle"></i>
+                <strong>${mostPredictable.item_name}</strong> is your most predictable item. 
+                Perfect candidate for just-in-time ordering.
+            </div>
+        `;
+    }
+    
+    // General insights
+    const avgTrend = Object.values(usagePatterns)
+        .reduce((sum, p) => sum + p.trend_factor, 0) / Object.keys(usagePatterns).length;
+    
+    if (avgTrend > 1.05) {
+        html += `
+            <div class="alert alert-primary">
+                <i class="bi bi-graph-up"></i>
+                Overall business is growing! Average item growth: +${((avgTrend - 1) * 100).toFixed(0)}%
+            </div>
+        `;
+    }
+    
+    if (!html) {
+        html = '<div class="text-muted">Add more usage data to get personalized insights!</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+// Load patterns when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsagePatterns();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,6 @@
+Supplier_Name,Contact_Person,Phone,Email,Address,Lead_Time_Days,Min_Order_Value,Payment_Terms,Reliability_Rating,Specialty,Notes
+Royal Coffee Importers,Sarah Johnson,(555) 234-5678,orders@royalcoffee.com,123 Coffee St Portland OR,5,500,Net 30,5,Green coffee beans,Premium quality ethiopian beans
+Java Bean Plus,Mike Chen,(555) 345-6789,wholesale@javabeanplus.com,456 Roast Ave Seattle WA,3,300,Net 15,4,Roasted coffee beans,Good variety of roasted blends
+Metro Dairy Distributors,Lisa Rodriguez,(555) 456-7890,service@metrodairy.com,789 Dairy Rd Vancouver WA,1,200,Net 7,5,Dairy products,Daily delivery available
+Pacific Paper Supply,Tom Wilson,(555) 567-8901,orders@pacificpaper.com,321 Supply Blvd Portland OR,7,150,Net 30,4,Paper products & supplies,Bulk discounts available
+Artisan Syrup Co,Emma Davis,(555) 678-9012,wholesale@artisansyrup.com,654 Flavor St Eugene OR,4,100,Net 15,3,Syrups & flavorings,Seasonal flavors available

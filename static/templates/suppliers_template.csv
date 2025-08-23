@@ -1,0 +1,6 @@
+Supplier_Name,Contact_Person,Phone,Email,Address,Lead_Time_Days,Min_Order_Value,Payment_Terms,Reliability_Rating,Specialty,Notes
+📝 INSTRUCTIONS: Enter supplier business name,Your sales rep name (optional),Main phone number,Orders email address,Business address (optional),Days from order to delivery,Minimum order amount (no $ symbol),"Net 7, Net 15, Net 30, etc",1-5 stars (5 = most reliable),What they supply,Any special notes
+Metro Dairy Supply,Sales Rep,(555) 234-5678,orders@metrodairysupply.com,,1,200,Net 15,4,Dairy products,Update with your actual supplier info
+Flavor Solutions Inc,Sales Rep,(555) 567-8901,orders@flavorsolutionsinc.com,,4,100,Net 30,4,Syrups and flavorings,Update with your actual supplier info
+Pacific Coffee Roasters,Sales Rep,(555) 345-6789,orders@pacificcoffeeroasters.com,,3,200,Net 15,4,Coffee beans and equipment,Update with your actual supplier info
+Restaurant Supply Co,Sales Rep,(555) 456-7890,orders@restaurantsupplyco.com,,7,200,Net 30,4,Paper products and supplies,Update with your actual supplier info

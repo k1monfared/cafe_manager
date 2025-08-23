@@ -1,0 +1,6 @@
+Item_Name,Category,Unit,Current_Stock,Min_Threshold,Max_Capacity,Cost_Per_Unit,Supplier,Lead_Time_Days,Shelf_Life_Days,Storage_Requirements,Last_Updated
+📝 INSTRUCTIONS: Replace this row with your real data. Keep column names unchanged.,dairy/coffee/supplies/syrups/etc,lbs/gallons/cases/bottles/pieces,How much you have now,When to reorder (usually 20% of max),Maximum you can store,Price per unit (no $ symbol),Supplier name,Days for delivery,Days before expiring,Cool dry place/refrigerated/etc,Today's date
+Whole Milk,dairy,gallons,10,3,20,4.25,Metro Dairy Supply,1,10,Refrigerated 35-38°F,2025-01-01
+House Blend Coffee,coffee,lbs,5,2,15,8.50,Coffee Roasters Inc,3,365,Cool dry place,2025-01-01
+12oz Paper Cups,supplies,cases,2,1,8,42.00,Paper Supply Co,7,730,Dry storage,2025-01-01
+Vanilla Syrup,syrups,bottles,3,1,10,9.25,Flavor Solutions,4,180,Room temperature,2025-01-01

@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% set active_page = "sheets" %}
+
+{% block title %}Google Sheets Sync - Cafe Supply Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-file-spreadsheet"></i> Google Sheets Sync</h1>
+    <button class="btn btn-success" onclick="syncAllSheets()">
+        <i class="bi bi-arrow-repeat"></i> Sync All Data
+    </button>
+</div>
+
+<!-- Instructions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>How to sync your Google Sheets:</strong>
+            <ol class="mb-0 mt-2">
+                <li>Open your Google Sheets</li>
+                <li>Go to <strong>File → Download → Comma Separated Values (.csv)</strong></li>
+                <li>Upload the CSV files below</li>
+                <li>Click <strong>"Sync All Data"</strong> to update your cafe manager</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<!-- File Upload Section -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cloud-upload"></i> Upload CSV Files</h5>
+            </div>
+            <div class="card-body">
+                <!-- Inventory Upload -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Current Inventory</strong></label>
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="inventoryFile" accept=".csv">
+                        <button class="btn btn-outline-primary" onclick="uploadFile('inventory', 'inventoryFile')">
+                            <i class="bi bi-upload"></i> Upload
+                        </button>
+                    </div>
+                    <small class="text-muted">Your current stock levels, costs, and supplier info</small>
+                </div>
+
+                <!-- Daily Usage Upload -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Daily Usage</strong></label>
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="usageFile" accept=".csv">
+                        <button class="btn btn-outline-primary" onclick="uploadFile('usage', 'usageFile')">
+                            <i class="bi bi-upload"></i> Upload
+                        </button>
+                    </div>
+                    <small class="text-muted">Daily consumption records for pattern analysis</small>
+                </div>
+
+                <!-- Order History Upload -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Order History</strong></label>
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="ordersFile" accept=".csv">
+                        <button class="btn btn-outline-primary" onclick="uploadFile('orders', 'ordersFile')">
+                            <i class="bi bi-upload"></i> Upload
+                        </button>
+                    </div>
+                    <small class="text-muted">Past orders for frequency analysis</small>
+                </div>
+
+                <!-- Suppliers Upload -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Suppliers</strong></label>
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="suppliersFile" accept=".csv">
+                        <button class="btn btn-outline-primary" onclick="uploadFile('suppliers', 'suppliersFile')">
+                            <i class="bi bi-upload"></i> Upload
+                        </button>
+                    </div>
+                    <small class="text-muted">Supplier contact info and terms</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-check-circle"></i> File Status</h5>
+            </div>
+            <div class="card-body" id="fileStatus">
+                <div class="text-center text-muted">
+                    <i class="bi bi-hourglass-split"></i> Checking file status...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Results -->
+<div class="row" id="syncResults" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-check-square"></i> Sync Results</h5>
+            </div>
+            <div class="card-body" id="syncResultsContent">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates Download Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-download"></i> Need Templates?</h5>
+            </div>
+            <div class="card-body">
+                <p>If you're starting fresh, download these templates to set up your Google Sheets:</p>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="/static/templates/current_inventory_template.csv" class="btn btn-outline-success w-100" download>
+                            <i class="bi bi-file-spreadsheet"></i> Inventory Template
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/static/templates/daily_usage_template.csv" class="btn btn-outline-info w-100" download>
+                            <i class="bi bi-calendar-day"></i> Usage Template
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/static/templates/order_history_template.csv" class="btn btn-outline-warning w-100" download>
+                            <i class="bi bi-cart"></i> Orders Template
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/static/templates/suppliers_template.csv" class="btn btn-outline-primary w-100" download>
+                            <i class="bi bi-building"></i> Suppliers Template
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let uploadedFiles = {};
+
+function loadFileStatus() {
+    fetch('/api/sheets_status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayFileStatus(data.files);
+            } else {
+                document.getElementById('fileStatus').innerHTML = 
+                    `<div class="alert alert-danger">Error: ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading file status:', error);
+            document.getElementById('fileStatus').innerHTML = 
+                '<div class="alert alert-danger">Failed to load file status</div>';
+        });
+}
+
+function displayFileStatus(files) {
+    let html = '';
+    
+    for (const [filename, info] of Object.entries(files)) {
+        const iconClass = info.exists ? 'bi-check-circle text-success' : 'bi-x-circle text-muted';
+        const statusText = info.exists ? 'Uploaded' : 'Not uploaded';
+        const sizeText = info.exists ? `${(info.size / 1024).toFixed(1)} KB` : '';
+        const modifiedText = info.exists ? 
+            new Date(info.modified).toLocaleString() : '';
+        
+        html += `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                <div>
+                    <i class="bi ${iconClass}"></i>
+                    <strong>${info.description}</strong>
+                    <br><small class="text-muted">${filename}</small>
+                </div>
+                <div class="text-end">
+                    <div class="badge ${info.exists ? 'bg-success' : 'bg-secondary'}">${statusText}</div>
+                    ${sizeText ? `<br><small class="text-muted">${sizeText}</small>` : ''}
+                    ${modifiedText ? `<br><small class="text-muted">${modifiedText}</small>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('fileStatus').innerHTML = html;
+}
+
+function uploadFile(fileType, inputId) {
+    const fileInput = document.getElementById(inputId);
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert('Please select a CSV file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('file_type', fileType);
+    
+    // Show loading
+    const button = fileInput.nextElementSibling;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+    button.disabled = true;
+    
+    fetch('/api/upload_csv', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            uploadedFiles[fileType] = true;
+            showAlert(`✅ ${data.message}`, 'success');
+            loadFileStatus(); // Refresh status
+            fileInput.value = ''; // Clear input
+        } else {
+            showAlert(`❌ Upload failed: ${data.error}`, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        showAlert('❌ Upload failed: Network error', 'danger');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function syncAllSheets() {
+    const button = document.querySelector('button[onclick="syncAllSheets()"]');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Syncing...';
+    button.disabled = true;
+    
+    fetch('/api/sync_sheets', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        displaySyncResults(data);
+        if (data.success) {
+            showAlert(`🎉 ${data.message}! Your data has been updated.`, 'success');
+            // Refresh the page after a delay to show updated data
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
+        } else {
+            showAlert(`❌ Sync failed: ${data.error}`, 'danger');
+        }
+        loadFileStatus(); // Refresh file status
+    })
+    .catch(error => {
+        console.error('Sync error:', error);
+        showAlert('❌ Sync failed: Network error', 'danger');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function displaySyncResults(data) {
+    const resultsDiv = document.getElementById('syncResults');
+    const contentDiv = document.getElementById('syncResultsContent');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-success">✅ Successfully Synced</h6>
+                <ul class="list-group">
+    `;
+    
+    if (data.successful_files && data.successful_files.length > 0) {
+        data.successful_files.forEach(file => {
+            html += `<li class="list-group-item list-group-item-success">${file}</li>`;
+        });
+    } else {
+        html += '<li class="list-group-item">No files synced successfully</li>';
+    }
+    
+    html += `
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-danger">❌ Failed to Sync</h6>
+                <ul class="list-group">
+    `;
+    
+    if (data.failed_files && data.failed_files.length > 0) {
+        data.failed_files.forEach(file => {
+            html += `<li class="list-group-item list-group-item-danger">${file}</li>`;
+        });
+    } else {
+        html += '<li class="list-group-item">No failures</li>';
+    }
+    
+    html += `
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    contentDiv.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+
+function showAlert(message, type) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+// Load file status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadFileStatus();
+});
+</script>
+{% endblock %}

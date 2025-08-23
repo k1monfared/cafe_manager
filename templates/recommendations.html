@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% set active_page = "recommendations" %}
+
+{% block title %}Order Recommendations - Cafe Supply Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-list-check"></i> Order Recommendations</h1>
+    <div>
+        <a href="/api/export_recommendations" class="btn btn-success">
+            <i class="bi bi-download"></i> Export to CSV
+        </a>
+        <button class="btn btn-primary" onclick="loadRecommendations()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            <strong>How to use:</strong> This page shows what to order and when, based on your usage patterns and current stock. 
+            Items are sorted by urgency - handle critical items first!
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<ul class="nav nav-tabs mb-4" id="urgencyTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button">
+            All Items <span class="badge bg-secondary ms-2" id="all-count">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="critical-tab" data-bs-toggle="tab" data-bs-target="#critical" type="button">
+            <span class="text-danger">Critical</span> <span class="badge bg-danger ms-2" id="critical-count">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="warning-tab" data-bs-toggle="tab" data-bs-target="#warning" type="button">
+            <span class="text-warning">Warning</span> <span class="badge bg-warning ms-2" id="warning-count">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="normal-tab" data-bs-toggle="tab" data-bs-target="#normal" type="button">
+            <span class="text-success">Normal</span> <span class="badge bg-success ms-2" id="normal-count">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="stock_up-tab" data-bs-toggle="tab" data-bs-target="#stock_up" type="button">
+            <span class="text-info">Stock Up</span> <span class="badge bg-info ms-2" id="stock_up-count">0</span>
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="urgencyTabContent">
+    <div class="tab-pane fade show active" id="all" role="tabpanel">
+        <div id="all-recommendations">
+            <div class="loading"><i class="bi bi-hourglass-split"></i> Loading recommendations...</div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="critical" role="tabpanel">
+        <div id="critical-recommendations"></div>
+    </div>
+    <div class="tab-pane fade" id="warning" role="tabpanel">
+        <div id="warning-recommendations"></div>
+    </div>
+    <div class="tab-pane fade" id="normal" role="tabpanel">
+        <div id="normal-recommendations"></div>
+    </div>
+    <div class="tab-pane fade" id="stock_up" role="tabpanel">
+        <div id="stock_up-recommendations"></div>
+    </div>
+</div>
+
+<!-- Summary Card -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calculator"></i> Order Summary</h5>
+            </div>
+            <div class="card-body" id="order-summary">
+                <!-- Summary will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allRecommendations = [];
+
+function loadRecommendations() {
+    // Show loading for all tabs
+    document.getElementById('all-recommendations').innerHTML = 
+        '<div class="loading"><i class="bi bi-hourglass-split"></i> Loading recommendations...</div>';
+    
+    fetch('/api/recommendations')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                allRecommendations = data.recommendations;
+                displayRecommendations();
+                updateSummary();
+            } else {
+                document.getElementById('all-recommendations').innerHTML = 
+                    `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading recommendations:', error);
+            document.getElementById('all-recommendations').innerHTML = 
+                '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Failed to load recommendations</div>';
+        });
+}
+
+function displayRecommendations() {
+    // Group recommendations by urgency
+    const groups = {
+        critical: [],
+        warning: [],
+        normal: [],
+        stock_up: []
+    };
+    
+    allRecommendations.forEach(rec => {
+        groups[rec.urgency_level].push(rec);
+    });
+    
+    // Update counts in tabs
+    document.getElementById('all-count').textContent = allRecommendations.length;
+    document.getElementById('critical-count').textContent = groups.critical.length;
+    document.getElementById('warning-count').textContent = groups.warning.length;
+    document.getElementById('normal-count').textContent = groups.normal.length;
+    document.getElementById('stock_up-count').textContent = groups.stock_up.length;
+    
+    // Display all recommendations
+    document.getElementById('all-recommendations').innerHTML = 
+        createRecommendationsTable(allRecommendations);
+    
+    // Display recommendations by urgency
+    Object.keys(groups).forEach(urgency => {
+        const container = document.getElementById(`${urgency}-recommendations`);
+        if (groups[urgency].length === 0) {
+            container.innerHTML = `<div class="text-muted">No ${urgency} items to order right now</div>`;
+        } else {
+            container.innerHTML = createRecommendationsTable(groups[urgency]);
+        }
+    });
+}
+
+function createRecommendationsTable(recommendations) {
+    if (recommendations.length === 0) {
+        return '<div class="text-muted">No recommendations</div>';
+    }
+    
+    let html = '<div class="row">';
+    
+    recommendations.forEach(rec => {
+        const urgencyClass = getUrgencyClass(rec.urgency_level);
+        const urgencyIcon = getUrgencyIcon(rec.urgency_level);
+        
+        html += `
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">${rec.item_name}</span>
+                        <span class="${urgencyClass}">${urgencyIcon}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">Current Stock</small>
+                                <div class="fw-bold">${rec.current_stock}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Recommend</small>
+                                <div class="fw-bold text-primary">${rec.recommended_quantity.toFixed(1)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">Days Left</small>
+                                <div class="fw-bold">${rec.days_until_reorder}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Estimated Cost</small>
+                                <div class="fw-bold text-success">${formatCurrency(rec.estimated_cost)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">Supplier</small>
+                            <div>${rec.supplier}</div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">Reason</small>
+                            <div class="small">${rec.reasoning}</div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">Projected Usage (7 days)</small>
+                            <div>${rec.projected_usage.toFixed(1)}</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-grid">
+                            <button class="btn btn-outline-primary btn-sm" onclick="createOrder('${rec.item_id}')">
+                                <i class="bi bi-plus-circle"></i> Add to Order List
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function updateSummary() {
+    const totalItems = allRecommendations.length;
+    const totalCost = allRecommendations.reduce((sum, rec) => sum + rec.estimated_cost, 0);
+    
+    const criticalItems = allRecommendations.filter(r => r.urgency_level === 'critical').length;
+    const warningItems = allRecommendations.filter(r => r.urgency_level === 'warning').length;
+    
+    document.getElementById('order-summary').innerHTML = `
+        <div class="row text-center">
+            <div class="col-md-3">
+                <h4 class="text-primary">${totalItems}</h4>
+                <p class="text-muted mb-0">Total Items</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-success">${formatCurrency(totalCost)}</h4>
+                <p class="text-muted mb-0">Total Est. Cost</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-danger">${criticalItems}</h4>
+                <p class="text-muted mb-0">Critical Items</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-warning">${warningItems}</h4>
+                <p class="text-muted mb-0">Warning Items</p>
+            </div>
+        </div>
+        
+        ${criticalItems > 0 ? `
+        <div class="alert alert-danger mt-3">
+            <i class="bi bi-exclamation-triangle-fill"></i> 
+            <strong>Urgent:</strong> You have ${criticalItems} critical items that need immediate ordering!
+        </div>` : ''}
+        
+        ${warningItems > 0 ? `
+        <div class="alert alert-warning mt-3">
+            <i class="bi bi-exclamation-triangle"></i> 
+            <strong>Attention:</strong> ${warningItems} items should be ordered soon to avoid stockouts.
+        </div>` : ''}
+    `;
+}
+
+function createOrder(itemId) {
+    // This would integrate with actual ordering system
+    alert(`Order creation for ${itemId} would be implemented here. For now, you can export to CSV and order manually.`);
+}
+
+// Load recommendations when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadRecommendations();
+});
+</script>
+{% endblock %}

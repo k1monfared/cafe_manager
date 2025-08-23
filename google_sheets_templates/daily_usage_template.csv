@@ -1,0 +1,12 @@
+Date,Item_Name,Quantity_Used,Waste_Amount,Sales_Count,Weather,Day_Of_Week,Special_Events,Notes
+2025-08-01,House Blend - Light Roast,2.5,0.1,85,Sunny,Friday,,Busy Friday morning
+2025-08-01,Ethiopian Yirgacheffe - Medium Roast,1.2,0.0,25,Sunny,Friday,,
+2025-08-01,Whole Milk,3.5,0.2,75,Sunny,Friday,,High latte demand
+2025-08-01,Oat Milk,1.5,0.0,20,Sunny,Friday,,
+2025-08-02,House Blend - Light Roast,3.1,0.1,95,Cloudy,Saturday,,Saturday rush
+2025-08-02,Ethiopian Yirgacheffe - Medium Roast,1.8,0.0,32,Cloudy,Saturday,,
+2025-08-02,Whole Milk,4.2,0.1,88,Cloudy,Saturday,,
+2025-08-03,House Blend - Light Roast,1.8,0.1,52,Rainy,Sunday,,Quiet Sunday
+2025-08-03,Whole Milk,2.3,0.3,45,Rainy,Sunday,,Milk expired had to discard
+2025-08-04,House Blend - Light Roast,2.2,0.0,78,Sunny,Monday,,Monday morning rush
+2025-08-04,Colombian Supremo - Dark Roast,0.8,0.0,18,Sunny,Monday,,Dark roast popularity growing
