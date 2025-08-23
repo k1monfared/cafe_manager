@@ -37,7 +37,7 @@ def install_requirements():
 
 def check_data_files():
     """Check if data files exist"""
-    data_dir = Path("sample_data")
+    data_dir = Path("data/sample_data")
     required_files = [
         "inventory_items.json",
         "suppliers.json", 
@@ -52,7 +52,7 @@ def check_data_files():
     
     if missing_files:
         print(f"❌ Missing data files: {', '.join(missing_files)}")
-        print("   Make sure you have the sample_data directory with all required files")
+        print("   Make sure you have the data/sample_data directory with all required files")
         input("Press Enter to exit...")
         sys.exit(1)
     
