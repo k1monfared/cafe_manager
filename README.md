@@ -112,15 +112,16 @@ cafe_manager/
 ├── 📊 src/forecasting_engine.py    # Smart forecasting logic
 ├── 📋 google_sheets_templates/     # Templates for Google Sheets
 │   ├── current_inventory_template.csv
-│   ├── daily_usage_template.csv
+│   ├── daily_inventory_template.csv
 │   ├── order_history_template.csv
 │   ├── suppliers_template.csv
 │   └── README_Templates.md
 ├── 🎯 sample_data/                 # Sample data to get started
-│   ├── inventory_items.json
-│   ├── suppliers.json
-│   ├── daily_usage.json
-│   └── order_history.json
+│   ├── inventory_items.json          # Master catalog of items
+│   ├── suppliers.json               # Supplier contact information
+│   ├── inventory_snapshots.json     # Daily inventory counts (PRIMARY)
+│   ├── daily_usage.json            # Auto-generated from snapshots
+│   └── order_history.json          # Past orders for analysis
 ├── 🎨 templates/                   # Web interface files
 │   ├── base.html
 │   ├── dashboard.html

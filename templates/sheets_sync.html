@@ -16,13 +16,14 @@
     <div class="col-12">
         <div class="alert alert-info">
             <i class="bi bi-info-circle"></i>
-            <strong>How to sync your Google Sheets:</strong>
+            <strong>New Simplified Workflow:</strong>
             <ol class="mb-0 mt-2">
-                <li>Open your Google Sheets</li>
-                <li>Go to <strong>File → Download → Comma Separated Values (.csv)</strong></li>
-                <li>Upload the CSV files below</li>
-                <li>Click <strong>"Sync All Data"</strong> to update your cafe manager</li>
+                <li><strong>Daily Inventory:</strong> Just count your current stock daily</li>
+                <li><strong>Export from Google Sheets:</strong> File → Download → CSV (.csv)</li>
+                <li><strong>Upload:</strong> Use the Daily Inventory Counts upload below</li>
+                <li><strong>Automatic:</strong> System calculates usage and generates recommendations</li>
             </ol>
+            <p class="mt-2 mb-0"><small><strong>Note:</strong> You no longer need to manually track daily usage - just count what you have!</small></p>
         </div>
     </div>
 </div>
@@ -47,16 +48,16 @@
                     <small class="text-muted">Your current stock levels, costs, and supplier info</small>
                 </div>
 
-                <!-- Daily Usage Upload -->
+                <!-- Daily Inventory Upload -->
                 <div class="mb-3">
-                    <label class="form-label"><strong>Daily Usage</strong></label>
+                    <label class="form-label"><strong>Daily Inventory Counts</strong></label>
                     <div class="input-group">
-                        <input type="file" class="form-control" id="usageFile" accept=".csv">
-                        <button class="btn btn-outline-primary" onclick="uploadFile('usage', 'usageFile')">
+                        <input type="file" class="form-control" id="inventorySnapshotFile" accept=".csv">
+                        <button class="btn btn-outline-primary" onclick="uploadFile('inventory_snapshots', 'inventorySnapshotFile')">
                             <i class="bi bi-upload"></i> Upload
                         </button>
                     </div>
-                    <small class="text-muted">Daily consumption records for pattern analysis</small>
+                    <small class="text-muted">Daily stock counts - system calculates usage automatically</small>
                 </div>
 
                 <!-- Order History Upload -->

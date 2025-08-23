@@ -15,16 +15,16 @@ These CSV templates can be imported into Google Sheets to organize your cafe's s
 
 **Update Frequency**: Daily for perishables, weekly for non-perishables
 
-### 2. Daily_Usage_Template.csv  
-**Purpose**: Record what you use each day to identify patterns
+### 2. Daily_Inventory_Template.csv  
+**Purpose**: Simply count what you have each day - system calculates usage automatically
 **Key Fields**:
-- `Quantity_Used`: Amount consumed during service
-- `Waste_Amount`: Amount spoiled/discarded
-- `Sales_Count`: Number of drinks/items sold
-- `Weather`: Weather affects customer behavior
-- `Special_Events`: Holidays, local events, etc.
+- `Current_Stock`: Count what you have right now
+- `Waste_Amount`: Amount spoiled/discarded (optional)
+- `Deliveries_Received`: New stock received today (optional)
+- `Notes`: Any observations about the day
 
-**Update Frequency**: Daily (can be done at end of business day)
+**Update Frequency**: Daily (just count your stock - takes 2-3 minutes)
+**Why This is Better**: No need to track usage manually - the system calculates `Usage = Yesterday's Stock + Deliveries - Today's Stock`
 
 ### 3. Order_History_Template.csv
 **Purpose**: Keep track of all orders placed and received  
@@ -60,14 +60,15 @@ These CSV templates can be imported into Google Sheets to organize your cafe's s
 - Add conditional formatting to highlight low stock (red when Current_Stock < Min_Threshold)
 
 ### Step 3: Create Your Data Entry Routine
-**Daily (5 minutes)**:
-- Update Daily_Usage sheet with yesterday's consumption
-- Quick check on Current_Inventory for any items running low
+**Daily (2-3 minutes)**:
+- Count your current stock using Daily_Inventory sheet
+- Note any waste or deliveries received
+- System automatically calculates usage patterns
 
-**Weekly (15 minutes)**:
-- Review usage patterns 
-- Update Current_Inventory stock levels
-- Check for any needed orders
+**Weekly (10 minutes)**:
+- Review the Dashboard for ordering recommendations
+- Update supplier info if anything changes
+- Check forecasting accuracy
 
 **When Ordering**:
 - Add entries to Order_History when placing orders
