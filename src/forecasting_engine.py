@@ -229,6 +229,10 @@ class ForecastingEngine:
         recommendations = []
         
         for item_id, item in self.inventory_items.items():
+            # Skip template/instruction rows
+            if item_id == 'ITEM001' or 'INSTRUCTIONS' in item.get('name', ''):
+                continue
+                
             # Calculate reorder frequency and typical quantity
             avg_reorder_days, avg_quantity = self.calculate_reorder_frequency(item_id)
             
@@ -269,6 +273,17 @@ class ForecastingEngine:
             max_can_order = item['max_capacity'] - item['current_stock']
             recommended_qty = min(recommended_qty, max_can_order)
             
+            # If we don't have historical order data, estimate based on usage and capacity
+            if recommended_qty <= 0 and days_until_reorder <= avg_reorder_days:
+                # Estimate quantity as enough to last until next reorder, plus safety stock
+                daily_usage = predicted_usage / avg_reorder_days if avg_reorder_days > 0 else 0
+                safety_stock = daily_usage * item['lead_time_days']
+                recommended_qty = (daily_usage * avg_reorder_days) + safety_stock
+                
+                # Don't exceed max capacity
+                max_can_order = item['max_capacity'] - item['current_stock']
+                recommended_qty = min(recommended_qty, max_can_order)
+            
             if recommended_qty > 0:
                 supplier = self.suppliers.get(item['supplier_id'], {})
                 estimated_cost = recommended_qty * item['cost_per_unit']
@@ -297,6 +312,10 @@ class ForecastingEngine:
         alerts = []
         
         for item_id, item in self.inventory_items.items():
+            # Skip template/instruction rows
+            if item_id == 'ITEM001' or 'INSTRUCTIONS' in item.get('name', ''):
+                continue
+                
             if item['current_stock'] <= item['min_threshold']:
                 alerts.append({
                     'type': 'low_stock',
