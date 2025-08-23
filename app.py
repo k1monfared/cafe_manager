@@ -31,39 +31,25 @@ sync_scheduler = get_scheduler()
 usage_calculator = UsageCalculator("data/sample_data")
 
 def process_daily_inventory_upload(csv_file_path):
-    """Process uploaded daily inventory CSV: merge with existing data and trigger all calculations"""
+    """Process uploaded daily inventory CSV using master CSV as source of truth"""
     import csv
     import pandas as pd
     
     try:
-        # Step 1: Load and validate uploaded CSV
-        df = pd.read_csv(csv_file_path)
-        print(f"📄 Processing uploaded CSV with {len(df)} rows")
+        print(f"📄 Processing uploaded CSV file...")
         
-        # Skip instruction rows
-        df = df[~df['Date'].astype(str).str.contains('📝', na=False)]
-        df = df[~df['Date'].astype(str).str.contains('INSTRUCTIONS', na=False)]
+        # Step 1: Load uploaded CSV and clean it
+        uploaded_df = pd.read_csv(csv_file_path)
         
-        # Step 2: Load existing inventory snapshots
-        snapshots_path = 'data/sample_data/inventory_snapshots.json'
-        with open(snapshots_path, 'r') as f:
-            existing_snapshots = json.load(f)
+        # Skip instruction rows if any
+        uploaded_df = uploaded_df[~uploaded_df['Date'].astype(str).str.contains('📝', na=False)]
+        uploaded_df = uploaded_df[~uploaded_df['Date'].astype(str).str.contains('INSTRUCTIONS', na=False)]
         
-        # Step 3: Load inventory items to get item_id mapping
-        items_path = 'data/sample_data/inventory_items.json'
-        with open(items_path, 'r') as f:
-            inventory_items = json.load(f)
-        
-        # Create name to item_id mapping
-        name_to_id = {}
-        for item in inventory_items:
-            name_to_id[item['name']] = item['item_id']
-        
-        # Step 4: Convert uploaded data to snapshots format
-        new_snapshots = []
+        # Clean and validate uploaded data
+        clean_uploaded_data = []
         processed_count = 0
         
-        for _, row in df.iterrows():
+        for _, row in uploaded_df.iterrows():
             try:
                 date_str = str(row['Date']).strip()
                 item_name = str(row['Item_Name']).strip()
@@ -72,109 +58,273 @@ def process_daily_inventory_upload(csv_file_path):
                 if not date_str or not item_name or date_str == 'nan' or item_name == 'nan':
                     continue
                 
-                # Find corresponding item_id
-                item_id = name_to_id.get(item_name)
-                if not item_id:
-                    print(f"⚠️  Warning: Unknown item '{item_name}', skipping")
-                    continue
+                # Parse numeric values
+                current_stock = float(row.get('Current_Stock', 0))
+                waste_amount = float(row.get('Waste_Amount', 0))
+                deliveries_received = float(row.get('Deliveries_Received', 0))
+                notes = str(row.get('Notes', '')).strip()
                 
-                # Parse values with defaults
-                try:
-                    stock_level = float(row.get('Current_Stock', 0))
-                    waste_amount = float(row.get('Waste_Amount', 0))
-                    deliveries_received = float(row.get('Deliveries_Received', 0))
-                    notes = str(row.get('Notes', '')).strip()
-                except (ValueError, TypeError):
-                    print(f"⚠️  Warning: Invalid numeric data for {item_name} on {date_str}, skipping")
-                    continue
-                
-                snapshot = {
-                    "date": date_str,
-                    "item_id": item_id,
-                    "stock_level": stock_level,
-                    "waste_amount": waste_amount,
-                    "deliveries_received": deliveries_received,
-                    "notes": notes
-                }
-                
-                new_snapshots.append(snapshot)
+                clean_uploaded_data.append({
+                    'Date': date_str,
+                    'Item_Name': item_name,
+                    'Current_Stock': current_stock,
+                    'Waste_Amount': waste_amount,
+                    'Deliveries_Received': deliveries_received,
+                    'Notes': notes
+                })
                 processed_count += 1
                 
-            except Exception as e:
-                print(f"⚠️  Error processing row: {e}")
+            except (ValueError, TypeError) as e:
+                print(f"⚠️  Warning: Invalid data in row, skipping: {e}")
                 continue
         
-        print(f"✅ Processed {processed_count} valid entries from upload")
+        if processed_count == 0:
+            return {
+                'success': False,
+                'error': 'No valid data found in uploaded file'
+            }
         
-        # Step 5: Smart merge - remove conflicts (same date + item_id) from existing data
-        existing_keys = {(s['date'], s['item_id']) for s in new_snapshots}
-        filtered_existing = [s for s in existing_snapshots if (s['date'], s['item_id']) not in existing_keys]
+        print(f"✅ Cleaned {processed_count} valid entries from upload")
         
-        # Combine filtered existing with new data
-        merged_snapshots = filtered_existing + new_snapshots
+        # Step 2: Load master CSV file (create if doesn't exist)
+        master_csv_path = 'data/daily_inventory_master.csv'
         
-        # Sort by date and item_id for consistency
-        merged_snapshots.sort(key=lambda x: (x['date'], x['item_id']))
+        try:
+            master_df = pd.read_csv(master_csv_path)
+        except FileNotFoundError:
+            # Create master CSV with headers if it doesn't exist
+            master_df = pd.DataFrame(columns=['Date', 'Item_Name', 'Current_Stock', 'Waste_Amount', 'Deliveries_Received', 'Notes'])
+            print("📝 Created new master CSV file")
         
-        conflicts_resolved = len(existing_snapshots) + len(new_snapshots) - len(merged_snapshots)
+        # Step 3: Smart merge - remove conflicts and append new data
+        uploaded_keys = {(row['Date'], row['Item_Name']) for row in clean_uploaded_data}
         
-        # Step 6: Save merged snapshots
+        # Remove existing entries that conflict with uploaded data
+        master_df_filtered = master_df[~master_df.apply(lambda x: (x['Date'], x['Item_Name']) in uploaded_keys, axis=1)]
+        
+        conflicts_resolved = len(master_df) - len(master_df_filtered)
+        
+        # Append new data
+        uploaded_df_clean = pd.DataFrame(clean_uploaded_data)
+        master_df_updated = pd.concat([master_df_filtered, uploaded_df_clean], ignore_index=True)
+        
+        # Sort by date and item name for consistency
+        master_df_updated = master_df_updated.sort_values(['Date', 'Item_Name']).reset_index(drop=True)
+        
+        # Step 4: Save updated master CSV
+        master_df_updated.to_csv(master_csv_path, index=False)
+        print(f"💾 Updated master CSV: {len(master_df_updated)} total entries ({conflicts_resolved} conflicts resolved)")
+        
+        # Step 5: Generate JSON files from master CSV
+        json_result = generate_json_from_master_csv(master_csv_path)
+        
+        if not json_result['success']:
+            return {
+                'success': False,
+                'error': f'Failed to generate JSON files: {json_result["error"]}'
+            }
+        
+        # Step 6: Update templates to stay current
+        update_csv_templates_from_master()
+        
+        # Step 7: Reload forecasting engine
+        global forecast_engine
+        forecast_engine = ForecastingEngine()
+        
+        print("🎉 Successfully completed full CSV-first workflow")
+        
+        return {
+            'success': True,
+            'message': 'Successfully processed daily inventory update',
+            'details': {
+                'processed_entries': processed_count,
+                'conflicts_resolved': conflicts_resolved,
+                'total_entries': len(master_df_updated),
+                'items_updated': json_result['items_updated'],
+                'master_csv_path': master_csv_path
+            }
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ Error in process_daily_inventory_upload: {e}")
+        traceback.print_exc()
+        return {
+            'success': False,
+            'error': f'Processing failed: {str(e)}'
+        }
+
+def generate_json_from_master_csv(master_csv_path):
+    """Generate all JSON files from the master CSV file"""
+    import pandas as pd
+    
+    try:
+        # Load master CSV
+        master_df = pd.read_csv(master_csv_path)
+        
+        # Load inventory items to get item mapping
+        items_path = 'data/sample_data/inventory_items.json'
+        with open(items_path, 'r') as f:
+            inventory_items = json.load(f)
+        
+        # Create name to item_id mapping
+        name_to_id = {}
+        id_to_item = {}
+        for item in inventory_items:
+            name_to_id[item['name']] = item['item_id']
+            id_to_item[item['item_id']] = item
+        
+        # Generate inventory snapshots
+        snapshots = []
+        unknown_items = set()
+        
+        for _, row in master_df.iterrows():
+            item_name = row['Item_Name']
+            item_id = name_to_id.get(item_name)
+            
+            if not item_id:
+                unknown_items.add(item_name)
+                continue
+            
+            snapshot = {
+                "date": row['Date'],
+                "item_id": item_id,
+                "stock_level": float(row['Current_Stock']),
+                "waste_amount": float(row['Waste_Amount']),
+                "deliveries_received": float(row['Deliveries_Received']),
+                "notes": str(row['Notes'])
+            }
+            snapshots.append(snapshot)
+        
+        if unknown_items:
+            print(f"⚠️  Warning: Unknown items in CSV: {', '.join(unknown_items)}")
+        
+        # Save inventory snapshots
+        snapshots_path = 'data/sample_data/inventory_snapshots.json'
         with open(snapshots_path, 'w') as f:
-            json.dump(merged_snapshots, f, indent=2)
+            json.dump(snapshots, f, indent=2)
         
-        print(f"💾 Saved {len(merged_snapshots)} total snapshots ({conflicts_resolved} conflicts resolved)")
-        
-        # Step 7: Update inventory items current_stock with latest snapshots
+        # Update inventory items with latest stock levels
         latest_stocks = {}
-        for snapshot in merged_snapshots:
+        for snapshot in snapshots:
             key = snapshot['item_id']
             if key not in latest_stocks or snapshot['date'] > latest_stocks[key]['date']:
                 latest_stocks[key] = snapshot
         
-        # Update inventory items
+        items_updated = 0
         for item in inventory_items:
             if item['item_id'] in latest_stocks:
                 old_stock = item['current_stock']
                 item['current_stock'] = latest_stocks[item['item_id']]['stock_level']
-                print(f"📦 Updated {item['name']}: {old_stock} → {item['current_stock']}")
+                if old_stock != item['current_stock']:
+                    items_updated += 1
+                    print(f"📦 Updated {item['name']}: {old_stock} → {item['current_stock']}")
         
+        # Save updated inventory items
         with open(items_path, 'w') as f:
             json.dump(inventory_items, f, indent=2)
         
-        # Step 8: Recalculate usage patterns and update daily_usage.json
-        usage_calculator.load_data()  # Load latest data
-        calculated_usage = usage_calculator.calculate_usage_from_snapshots()
-        usage_data = usage_calculator.export_calculated_usage_to_daily_usage_format()
+        # Generate daily usage from snapshots (if usage calculator available)
+        try:
+            usage_calculator.load_data()
+            calculated_usage = usage_calculator.calculate_usage_from_snapshots()
+            usage_data = usage_calculator.export_calculated_usage_to_daily_usage_format()
+            
+            usage_path = 'data/sample_data/daily_usage.json'
+            with open(usage_path, 'w') as f:
+                json.dump(usage_data, f, indent=2)
+            
+            print("📊 Generated daily usage patterns")
+        except Exception as e:
+            print(f"⚠️  Usage calculation failed: {e}")
         
-        # Save updated daily usage
-        usage_path = 'data/sample_data/daily_usage.json'
-        with open(usage_path, 'w') as f:
-            json.dump(usage_data, f, indent=2)
-        
-        # Step 9: Update CSV templates to stay in sync
-        for snapshot_group in [s for s in new_snapshots]:
-            update_csv_templates_from_json(snapshot_group['date'], [snapshot_group])
-        
-        # Step 10: Reload forecasting engine with new data
-        global forecast_engine
-        forecast_engine = ForecastingEngine()
+        print(f"✅ Generated JSON files from master CSV ({len(snapshots)} snapshots, {items_updated} items updated)")
         
         return {
             'success': True,
-            'message': f'Successfully processed daily inventory update',
-            'details': {
-                'processed_entries': processed_count,
-                'conflicts_resolved': conflicts_resolved,
-                'total_snapshots': len(merged_snapshots),
-                'items_updated': len([i for i in inventory_items if i['item_id'] in latest_stocks])
-            }
+            'snapshots_count': len(snapshots),
+            'items_updated': items_updated,
+            'unknown_items': list(unknown_items)
         }
         
     except Exception as e:
         return {
             'success': False,
-            'error': f'Processing failed: {str(e)}'
+            'error': str(e)
         }
+
+def update_csv_templates_from_master():
+    """Update CSV templates using data from master CSV"""
+    try:
+        # Copy master CSV to templates
+        master_csv_path = 'data/daily_inventory_master.csv'
+        
+        template_paths = [
+            'templates/csv_templates/daily_inventory_template.csv',
+            'google_sheets_templates/daily_inventory_template.csv'
+        ]
+        
+        import shutil
+        for template_path in template_paths:
+            shutil.copy2(master_csv_path, template_path)
+            print(f"📋 Updated template: {template_path}")
+        
+        # Also update current inventory template with latest stock levels
+        items_path = 'data/sample_data/inventory_items.json'
+        with open(items_path, 'r') as f:
+            inventory_items = json.load(f)
+        
+        # Update current inventory templates
+        current_template_paths = [
+            'templates/csv_templates/current_inventory_template.csv',
+            'google_sheets_templates/current_inventory_template.csv'
+        ]
+        
+        from datetime import datetime
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        for template_path in current_template_paths:
+            try:
+                import pandas as pd
+                
+                # Read existing template to preserve headers and instructions
+                try:
+                    template_df = pd.read_csv(template_path)
+                    # Keep instruction row
+                    instruction_rows = template_df[template_df['Item_Name'].astype(str).str.contains('📝', na=False)]
+                except:
+                    instruction_rows = pd.DataFrame()
+                
+                # Create updated data rows
+                data_rows = []
+                for item in inventory_items:
+                    if item['item_id'] != 'ITEM001':  # Skip instruction item
+                        data_rows.append({
+                            'Item_Name': item['name'],
+                            'Category': item['category'],
+                            'Unit': item['unit'],
+                            'Current_Stock': item['current_stock'],
+                            'Min_Threshold': item['min_threshold'],
+                            'Max_Capacity': item['max_capacity'],
+                            'Cost_Per_Unit': item['cost_per_unit'],
+                            'Supplier': 'Various',  # Simplified
+                            'Lead_Time_Days': item['lead_time_days'],
+                            'Shelf_Life_Days': item['shelf_life_days'],
+                            'Storage_Requirements': item['storage_requirements'],
+                            'Last_Updated': today
+                        })
+                
+                # Combine instruction and data
+                updated_df = pd.concat([instruction_rows, pd.DataFrame(data_rows)], ignore_index=True)
+                updated_df.to_csv(template_path, index=False)
+                
+            except Exception as e:
+                print(f"⚠️  Warning: Could not update {template_path}: {e}")
+        
+        print("✅ Templates synchronized with master data")
+        
+    except Exception as e:
+        print(f"⚠️  Warning: Template update failed: {e}")
 
 def update_csv_templates_from_json(date, inventory_snapshot):
     """Update CSV templates with latest data from daily inventory snapshots"""
@@ -525,6 +675,13 @@ def upload_csv():
 @app.route('/api/download_template/<template_type>')
 def download_template(template_type):
     """Download CSV templates"""
+    if template_type == 'master_csv':
+        # Special case: download the master CSV file
+        master_csv_path = 'data/daily_inventory_master.csv'
+        if not os.path.exists(master_csv_path):
+            return jsonify({'error': 'Master CSV file not found'}), 404
+        return send_file(master_csv_path, as_attachment=True, download_name='daily_inventory_master.csv')
+    
     template_map = {
         'current_inventory': 'current_inventory_template.csv',
         'daily_inventory': 'daily_inventory_template.csv',
@@ -542,6 +699,41 @@ def download_template(template_type):
         return jsonify({'error': 'Template file not found'}), 404
     
     return send_file(file_path, as_attachment=True, download_name=filename)
+
+@app.route('/api/regenerate_json', methods=['POST'])
+def regenerate_json():
+    """Regenerate all JSON files from master CSV"""
+    try:
+        master_csv_path = 'data/daily_inventory_master.csv'
+        if not os.path.exists(master_csv_path):
+            return jsonify({
+                'success': False,
+                'error': 'Master CSV file not found'
+            })
+        
+        result = generate_json_from_master_csv(master_csv_path)
+        
+        if result['success']:
+            # Reload forecasting engine
+            global forecast_engine
+            forecast_engine = ForecastingEngine()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Successfully regenerated JSON files from master CSV',
+                'details': result
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to regenerate JSON: {str(e)}'
+        })
 
 @app.route('/api/sync_sheets', methods=['POST'])
 def sync_sheets():

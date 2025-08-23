@@ -16,14 +16,14 @@
     <div class="col-12">
         <div class="alert alert-info">
             <i class="bi bi-info-circle"></i>
-            <strong>New Simplified Workflow:</strong>
+            <strong>CSV-First Workflow:</strong>
             <ol class="mb-0 mt-2">
-                <li><strong>Daily Inventory:</strong> Just count your current stock daily</li>
-                <li><strong>Export from Google Sheets:</strong> File → Download → CSV (.csv)</li>
-                <li><strong>Upload:</strong> Use the Daily Inventory Counts upload below</li>
-                <li><strong>Automatic:</strong> System calculates usage and generates recommendations</li>
+                <li><strong>Master CSV:</strong> All your daily inventory data is stored in one CSV file</li>
+                <li><strong>Upload New Data:</strong> Add daily counts and they're automatically merged</li>
+                <li><strong>Smart Conflicts:</strong> New data overwrites old data for same date/item</li>
+                <li><strong>Auto-Generate:</strong> JSON files created automatically from your CSV data</li>
             </ol>
-            <p class="mt-2 mb-0"><small><strong>Note:</strong> You no longer need to manually track daily usage - just count what you have!</small></p>
+            <p class="mt-2 mb-0"><small><strong>Benefit:</strong> CSV file is your single source of truth - edit directly or upload updates!</small></p>
         </div>
     </div>
 </div>
@@ -124,6 +124,16 @@
             </div>
             <div class="card-body">
                 <p>If you're starting fresh, download these templates to set up your Google Sheets:</p>
+                <div class="alert alert-success mb-3">
+                    <strong><i class="bi bi-star-fill"></i> Recommended:</strong> Download your complete daily inventory data
+                    <div class="mt-2">
+                        <a href="/api/download_template/master_csv" class="btn btn-success">
+                            <i class="bi bi-download"></i> Download Master CSV File
+                        </a>
+                        <small class="d-block mt-1">Contains all your daily inventory data - edit directly in Excel/Sheets!</small>
+                    </div>
+                </div>
+                
                 <div class="row">
                     <div class="col-md-3 mb-2">
                         <a href="/api/download_template/current_inventory" class="btn btn-outline-success w-100">

@@ -1,11 +1,11 @@
 [
   {
     "date": "2025-08-19",
-    "item_id": "ITEM002",
-    "stock_level": 15.0,
+    "item_id": "ITEM004",
+    "stock_level": 7.5,
     "waste_amount": 0.0,
-    "deliveries_received": 20.0,
-    "notes": "Monday delivery - fresh stock"
+    "deliveries_received": 5.0,
+    "notes": "New supply order arrived"
   },
   {
     "date": "2025-08-19",
@@ -17,14 +17,6 @@
   },
   {
     "date": "2025-08-19",
-    "item_id": "ITEM004",
-    "stock_level": 7.5,
-    "waste_amount": 0.0,
-    "deliveries_received": 5.0,
-    "notes": "New supply order arrived"
-  },
-  {
-    "date": "2025-08-19",
     "item_id": "ITEM005",
     "stock_level": 8.0,
     "waste_amount": 0.0,
@@ -32,20 +24,12 @@
     "notes": "Restocked flavors"
   },
   {
-    "date": "2025-08-20",
+    "date": "2025-08-19",
     "item_id": "ITEM002",
-    "stock_level": 12.5,
-    "waste_amount": 0.5,
-    "deliveries_received": 0.0,
-    "notes": "Normal Tuesday usage"
-  },
-  {
-    "date": "2025-08-20",
-    "item_id": "ITEM003",
-    "stock_level": 10.2,
+    "stock_level": 15.0,
     "waste_amount": 0.0,
-    "deliveries_received": 0.0,
-    "notes": "Steady coffee sales"
+    "deliveries_received": 20.0,
+    "notes": "Monday delivery - fresh stock"
   },
   {
     "date": "2025-08-20",
@@ -57,6 +41,14 @@
   },
   {
     "date": "2025-08-20",
+    "item_id": "ITEM003",
+    "stock_level": 10.2,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Steady coffee sales"
+  },
+  {
+    "date": "2025-08-20",
     "item_id": "ITEM005",
     "stock_level": 7.2,
     "waste_amount": 0.0,
@@ -64,20 +56,12 @@
     "notes": "Popular flavor today"
   },
   {
-    "date": "2025-08-21",
+    "date": "2025-08-20",
     "item_id": "ITEM002",
-    "stock_level": 9.8,
-    "waste_amount": 0.2,
+    "stock_level": 12.5,
+    "waste_amount": 0.5,
     "deliveries_received": 0.0,
-    "notes": "Busy Wednesday"
-  },
-  {
-    "date": "2025-08-21",
-    "item_id": "ITEM003",
-    "stock_level": 8.5,
-    "waste_amount": 0.0,
-    "deliveries_received": 0.0,
-    "notes": "High coffee demand"
+    "notes": "Normal Tuesday usage"
   },
   {
     "date": "2025-08-21",
@@ -89,6 +73,14 @@
   },
   {
     "date": "2025-08-21",
+    "item_id": "ITEM003",
+    "stock_level": 8.5,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "High coffee demand"
+  },
+  {
+    "date": "2025-08-21",
     "item_id": "ITEM005",
     "stock_level": 6.4,
     "waste_amount": 0.1,
@@ -96,20 +88,12 @@
     "notes": "One bottle opened"
   },
   {
-    "date": "2025-08-22",
+    "date": "2025-08-21",
     "item_id": "ITEM002",
-    "stock_level": 6.5,
-    "waste_amount": 0.3,
+    "stock_level": 9.8,
+    "waste_amount": 0.2,
     "deliveries_received": 0.0,
-    "notes": "Thursday rush"
-  },
-  {
-    "date": "2025-08-22",
-    "item_id": "ITEM003",
-    "stock_level": 6.8,
-    "waste_amount": 0.0,
-    "deliveries_received": 0.0,
-    "notes": "Consistent usage"
+    "notes": "Busy Wednesday"
   },
   {
     "date": "2025-08-22",
@@ -121,6 +105,14 @@
   },
   {
     "date": "2025-08-22",
+    "item_id": "ITEM003",
+    "stock_level": 6.8,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Consistent usage"
+  },
+  {
+    "date": "2025-08-22",
     "item_id": "ITEM005",
     "stock_level": 5.6,
     "waste_amount": 0.0,
@@ -128,20 +120,12 @@
     "notes": "Normal usage"
   },
   {
-    "date": "2025-08-23",
+    "date": "2025-08-22",
     "item_id": "ITEM002",
-    "stock_level": 3.2,
-    "waste_amount": 0.2,
+    "stock_level": 6.5,
+    "waste_amount": 0.3,
     "deliveries_received": 0.0,
-    "notes": "Friday busy - getting low"
-  },
-  {
-    "date": "2025-08-23",
-    "item_id": "ITEM003",
-    "stock_level": 4.9,
-    "waste_amount": 0.1,
-    "deliveries_received": 0.0,
-    "notes": "Need to reorder soon"
+    "notes": "Thursday rush"
   },
   {
     "date": "2025-08-23",
@@ -153,6 +137,14 @@
   },
   {
     "date": "2025-08-23",
+    "item_id": "ITEM003",
+    "stock_level": 4.9,
+    "waste_amount": 0.1,
+    "deliveries_received": 0.0,
+    "notes": "Need to reorder soon"
+  },
+  {
+    "date": "2025-08-23",
     "item_id": "ITEM005",
     "stock_level": 4.8,
     "waste_amount": 0.1,
@@ -160,12 +152,12 @@
     "notes": "Still good supply"
   },
   {
-    "date": "2025-08-24",
+    "date": "2025-08-23",
     "item_id": "ITEM002",
-    "stock_level": 1.8,
-    "waste_amount": 0.1,
+    "stock_level": 3.2,
+    "waste_amount": 0.2,
     "deliveries_received": 0.0,
-    "notes": "Testing sync - even lower"
+    "notes": "Friday busy - getting low"
   },
   {
     "date": "2025-08-24",
@@ -176,12 +168,20 @@
     "notes": "Testing sync - lower"
   },
   {
-    "date": "2025-08-25",
+    "date": "2025-08-24",
     "item_id": "ITEM002",
-    "stock_level": 1.2,
-    "waste_amount": 0.2,
+    "stock_level": 1.8,
+    "waste_amount": 0.1,
     "deliveries_received": 0.0,
-    "notes": "Testing CSV sync - very low milk"
+    "notes": "Testing sync - even lower"
+  },
+  {
+    "date": "2025-08-25",
+    "item_id": "ITEM004",
+    "stock_level": 0.8,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Critical - below minimum cups"
   },
   {
     "date": "2025-08-25",
@@ -193,27 +193,11 @@
   },
   {
     "date": "2025-08-25",
-    "item_id": "ITEM004",
-    "stock_level": 0.8,
-    "waste_amount": 0.0,
-    "deliveries_received": 0.0,
-    "notes": "Critical - below minimum cups"
-  },
-  {
-    "date": "2025-08-26",
     "item_id": "ITEM002",
-    "stock_level": 7.8,
+    "stock_level": 1.2,
     "waste_amount": 0.2,
-    "deliveries_received": 5.0,
-    "notes": "Updated count with delivery"
-  },
-  {
-    "date": "2025-08-26",
-    "item_id": "ITEM003",
-    "stock_level": 5.9,
-    "waste_amount": 0.0,
     "deliveries_received": 0.0,
-    "notes": "Corrected evening count"
+    "notes": "Testing CSV sync - very low milk"
   },
   {
     "date": "2025-08-26",
@@ -225,10 +209,58 @@
   },
   {
     "date": "2025-08-26",
+    "item_id": "ITEM003",
+    "stock_level": 5.9,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Corrected evening count"
+  },
+  {
+    "date": "2025-08-26",
     "item_id": "ITEM005",
     "stock_level": 4.2,
     "waste_amount": 0.0,
     "deliveries_received": 0.0,
     "notes": "Still good supply"
+  },
+  {
+    "date": "2025-08-26",
+    "item_id": "ITEM002",
+    "stock_level": 7.8,
+    "waste_amount": 0.2,
+    "deliveries_received": 5.0,
+    "notes": "Updated count with delivery"
+  },
+  {
+    "date": "2025-08-27",
+    "item_id": "ITEM004",
+    "stock_level": 1.8,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Critical level"
+  },
+  {
+    "date": "2025-08-27",
+    "item_id": "ITEM003",
+    "stock_level": 8.1,
+    "waste_amount": 0.0,
+    "deliveries_received": 5.0,
+    "notes": "Fresh delivery received"
+  },
+  {
+    "date": "2025-08-27",
+    "item_id": "ITEM005",
+    "stock_level": 6.5,
+    "waste_amount": 0.1,
+    "deliveries_received": 0.0,
+    "notes": "Normal usage"
+  },
+  {
+    "date": "2025-08-27",
+    "item_id": "ITEM002",
+    "stock_level": 5.2,
+    "waste_amount": 0.3,
+    "deliveries_received": 0.0,
+    "notes": "Low stock - need delivery"
   }
 ]
