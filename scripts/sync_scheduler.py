@@ -10,8 +10,8 @@ import time
 import threading
 from datetime import datetime, timedelta
 from typing import Dict, Optional
-from google_drive_integration import GoogleDriveIntegration
-from sheets_sync import SheetsSync
+from .google_drive_integration import GoogleDriveIntegration
+from .sheets_sync import SheetsSync
 
 class SyncScheduler:
     def __init__(self, config_file="sync_config.json"):

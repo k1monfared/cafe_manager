@@ -48,16 +48,16 @@
                     <small class="text-muted">Your current stock levels, costs, and supplier info</small>
                 </div>
 
-                <!-- Daily Inventory Upload -->
+                <!-- Daily Inventory Upload - NEW AUTOMATED -->
                 <div class="mb-3">
-                    <label class="form-label"><strong>Daily Inventory Counts</strong></label>
+                    <label class="form-label"><strong>Daily Inventory Counts</strong> <span class="badge bg-success">Auto-Process</span></label>
                     <div class="input-group">
-                        <input type="file" class="form-control" id="inventorySnapshotFile" accept=".csv">
-                        <button class="btn btn-outline-primary" onclick="uploadFile('inventory_snapshots', 'inventorySnapshotFile')">
-                            <i class="bi bi-upload"></i> Upload
+                        <input type="file" class="form-control" id="dailyInventoryFile" accept=".csv">
+                        <button class="btn btn-success" onclick="uploadDailyInventory('dailyInventoryFile')">
+                            <i class="bi bi-upload"></i> Upload & Process
                         </button>
                     </div>
-                    <small class="text-muted">Daily stock counts - system calculates usage automatically</small>
+                    <small class="text-muted">Daily stock counts - automatically merges, calculates usage, and updates all data!</small>
                 </div>
 
                 <!-- Order History Upload -->
@@ -126,22 +126,22 @@
                 <p>If you're starting fresh, download these templates to set up your Google Sheets:</p>
                 <div class="row">
                     <div class="col-md-3 mb-2">
-                        <a href="/static/templates/current_inventory_template.csv" class="btn btn-outline-success w-100" download>
+                        <a href="/api/download_template/current_inventory" class="btn btn-outline-success w-100">
                             <i class="bi bi-file-spreadsheet"></i> Inventory Template
                         </a>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <a href="/static/templates/daily_usage_template.csv" class="btn btn-outline-info w-100" download>
-                            <i class="bi bi-calendar-day"></i> Usage Template
+                        <a href="/api/download_template/daily_inventory" class="btn btn-outline-info w-100">
+                            <i class="bi bi-calendar-day"></i> Daily Inventory Template
                         </a>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <a href="/static/templates/order_history_template.csv" class="btn btn-outline-warning w-100" download>
+                        <a href="/api/download_template/order_history" class="btn btn-outline-warning w-100">
                             <i class="bi bi-cart"></i> Orders Template
                         </a>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <a href="/static/templates/suppliers_template.csv" class="btn btn-outline-primary w-100" download>
+                        <a href="/api/download_template/suppliers" class="btn btn-outline-primary w-100">
                             <i class="bi bi-building"></i> Suppliers Template
                         </a>
                     </div>
@@ -201,6 +201,65 @@ function displayFileStatus(files) {
     }
     
     document.getElementById('fileStatus').innerHTML = html;
+}
+
+function uploadDailyInventory(inputId) {
+    const fileInput = document.getElementById(inputId);
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert('Please select a CSV file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Show loading
+    const button = fileInput.nextElementSibling;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+    button.disabled = true;
+    
+    fetch('/api/upload_daily_inventory', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const details = data.details;
+            let message = `🎉 ${data.message}!`;
+            if (details) {
+                message += `\n• Processed: ${details.processed_entries} entries`;
+                message += `\n• Conflicts resolved: ${details.conflicts_resolved}`;
+                message += `\n• Items updated: ${details.items_updated}`;
+                message += `\n• Total snapshots: ${details.total_snapshots}`;
+            }
+            showAlert(message, 'success');
+            fileInput.value = ''; // Clear input
+            
+            // Redirect to dashboard after success
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
+        } else {
+            showAlert(`❌ Processing failed: ${data.error}`, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        showAlert('❌ Upload failed: Network error', 'danger');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
 }
 
 function uploadFile(fileType, inputId) {

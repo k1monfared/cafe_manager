@@ -9,11 +9,11 @@ import os
 import json
 from datetime import datetime, timedelta
 from src.forecasting_engine import ForecastingEngine, OrderRecommendation
-from sheets_sync import SheetsSync
+from scripts.sheets_sync import SheetsSync
 from werkzeug.utils import secure_filename
-from google_drive_integration import GoogleDriveIntegration
-from sync_scheduler import get_scheduler
-from usage_calculator import UsageCalculator
+from scripts.google_drive_integration import GoogleDriveIntegration
+from scripts.sync_scheduler import get_scheduler
+from scripts.usage_calculator import UsageCalculator
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cafe-supply-manager-2025'
@@ -28,7 +28,254 @@ forecast_engine = ForecastingEngine()
 sheets_sync = SheetsSync()
 google_drive = GoogleDriveIntegration()
 sync_scheduler = get_scheduler()
-usage_calculator = UsageCalculator()
+usage_calculator = UsageCalculator("data/sample_data")
+
+def process_daily_inventory_upload(csv_file_path):
+    """Process uploaded daily inventory CSV: merge with existing data and trigger all calculations"""
+    import csv
+    import pandas as pd
+    
+    try:
+        # Step 1: Load and validate uploaded CSV
+        df = pd.read_csv(csv_file_path)
+        print(f"📄 Processing uploaded CSV with {len(df)} rows")
+        
+        # Skip instruction rows
+        df = df[~df['Date'].astype(str).str.contains('📝', na=False)]
+        df = df[~df['Date'].astype(str).str.contains('INSTRUCTIONS', na=False)]
+        
+        # Step 2: Load existing inventory snapshots
+        snapshots_path = 'data/sample_data/inventory_snapshots.json'
+        with open(snapshots_path, 'r') as f:
+            existing_snapshots = json.load(f)
+        
+        # Step 3: Load inventory items to get item_id mapping
+        items_path = 'data/sample_data/inventory_items.json'
+        with open(items_path, 'r') as f:
+            inventory_items = json.load(f)
+        
+        # Create name to item_id mapping
+        name_to_id = {}
+        for item in inventory_items:
+            name_to_id[item['name']] = item['item_id']
+        
+        # Step 4: Convert uploaded data to snapshots format
+        new_snapshots = []
+        processed_count = 0
+        
+        for _, row in df.iterrows():
+            try:
+                date_str = str(row['Date']).strip()
+                item_name = str(row['Item_Name']).strip()
+                
+                # Skip invalid rows
+                if not date_str or not item_name or date_str == 'nan' or item_name == 'nan':
+                    continue
+                
+                # Find corresponding item_id
+                item_id = name_to_id.get(item_name)
+                if not item_id:
+                    print(f"⚠️  Warning: Unknown item '{item_name}', skipping")
+                    continue
+                
+                # Parse values with defaults
+                try:
+                    stock_level = float(row.get('Current_Stock', 0))
+                    waste_amount = float(row.get('Waste_Amount', 0))
+                    deliveries_received = float(row.get('Deliveries_Received', 0))
+                    notes = str(row.get('Notes', '')).strip()
+                except (ValueError, TypeError):
+                    print(f"⚠️  Warning: Invalid numeric data for {item_name} on {date_str}, skipping")
+                    continue
+                
+                snapshot = {
+                    "date": date_str,
+                    "item_id": item_id,
+                    "stock_level": stock_level,
+                    "waste_amount": waste_amount,
+                    "deliveries_received": deliveries_received,
+                    "notes": notes
+                }
+                
+                new_snapshots.append(snapshot)
+                processed_count += 1
+                
+            except Exception as e:
+                print(f"⚠️  Error processing row: {e}")
+                continue
+        
+        print(f"✅ Processed {processed_count} valid entries from upload")
+        
+        # Step 5: Smart merge - remove conflicts (same date + item_id) from existing data
+        existing_keys = {(s['date'], s['item_id']) for s in new_snapshots}
+        filtered_existing = [s for s in existing_snapshots if (s['date'], s['item_id']) not in existing_keys]
+        
+        # Combine filtered existing with new data
+        merged_snapshots = filtered_existing + new_snapshots
+        
+        # Sort by date and item_id for consistency
+        merged_snapshots.sort(key=lambda x: (x['date'], x['item_id']))
+        
+        conflicts_resolved = len(existing_snapshots) + len(new_snapshots) - len(merged_snapshots)
+        
+        # Step 6: Save merged snapshots
+        with open(snapshots_path, 'w') as f:
+            json.dump(merged_snapshots, f, indent=2)
+        
+        print(f"💾 Saved {len(merged_snapshots)} total snapshots ({conflicts_resolved} conflicts resolved)")
+        
+        # Step 7: Update inventory items current_stock with latest snapshots
+        latest_stocks = {}
+        for snapshot in merged_snapshots:
+            key = snapshot['item_id']
+            if key not in latest_stocks or snapshot['date'] > latest_stocks[key]['date']:
+                latest_stocks[key] = snapshot
+        
+        # Update inventory items
+        for item in inventory_items:
+            if item['item_id'] in latest_stocks:
+                old_stock = item['current_stock']
+                item['current_stock'] = latest_stocks[item['item_id']]['stock_level']
+                print(f"📦 Updated {item['name']}: {old_stock} → {item['current_stock']}")
+        
+        with open(items_path, 'w') as f:
+            json.dump(inventory_items, f, indent=2)
+        
+        # Step 8: Recalculate usage patterns and update daily_usage.json
+        usage_calculator.load_data()  # Load latest data
+        calculated_usage = usage_calculator.calculate_usage_from_snapshots()
+        usage_data = usage_calculator.export_calculated_usage_to_daily_usage_format()
+        
+        # Save updated daily usage
+        usage_path = 'data/sample_data/daily_usage.json'
+        with open(usage_path, 'w') as f:
+            json.dump(usage_data, f, indent=2)
+        
+        # Step 9: Update CSV templates to stay in sync
+        for snapshot_group in [s for s in new_snapshots]:
+            update_csv_templates_from_json(snapshot_group['date'], [snapshot_group])
+        
+        # Step 10: Reload forecasting engine with new data
+        global forecast_engine
+        forecast_engine = ForecastingEngine()
+        
+        return {
+            'success': True,
+            'message': f'Successfully processed daily inventory update',
+            'details': {
+                'processed_entries': processed_count,
+                'conflicts_resolved': conflicts_resolved,
+                'total_snapshots': len(merged_snapshots),
+                'items_updated': len([i for i in inventory_items if i['item_id'] in latest_stocks])
+            }
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Processing failed: {str(e)}'
+        }
+
+def update_csv_templates_from_json(date, inventory_snapshot):
+    """Update CSV templates with latest data from daily inventory snapshots"""
+    import csv
+    
+    # Update daily_inventory_template.csv with the new snapshot data
+    daily_template_path = 'templates/csv_templates/daily_inventory_template.csv'
+    
+    try:
+        # Read existing daily inventory template
+        rows = []
+        with open(daily_template_path, 'r', newline='') as f:
+            reader = csv.DictReader(f)
+            fieldnames = reader.fieldnames
+            
+            # Keep header and instruction rows
+            for row in reader:
+                if '📝 INSTRUCTIONS' in row.get('Date', ''):
+                    rows.append(row)
+                elif row.get('Date') != date:  # Keep other dates
+                    rows.append(row)
+        
+        # Add the new snapshot data
+        with open('data/sample_data/inventory_items.json', 'r') as f:
+            items = json.load(f)
+        
+        items_dict = {item['item_id']: item for item in items}
+        
+        for snapshot in inventory_snapshot:
+            item_id = snapshot['item_id']
+            if item_id in items_dict and item_id != 'ITEM001':  # Skip template row
+                item = items_dict[item_id]
+                rows.append({
+                    'Date': date,
+                    'Item_Name': item['name'],
+                    'Current_Stock': str(snapshot['stock_level']),
+                    'Waste_Amount': str(snapshot.get('waste_amount', 0)),
+                    'Deliveries_Received': str(snapshot.get('deliveries_received', 0)),
+                    'Notes': snapshot.get('notes', '')
+                })
+        
+        # Write updated daily inventory template
+        with open(daily_template_path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+            
+    except Exception as e:
+        print(f"Error updating daily inventory template: {e}")
+    
+    # Update current_inventory_template.csv with latest stock levels
+    current_template_path = 'templates/csv_templates/current_inventory_template.csv'
+    
+    try:
+        # Read existing current inventory template
+        rows = []
+        with open(current_template_path, 'r', newline='') as f:
+            reader = csv.DictReader(f)
+            fieldnames = reader.fieldnames
+            
+            for row in reader:
+                if '📝 INSTRUCTIONS' in row.get('Item_Name', ''):
+                    rows.append(row)  # Keep instruction row
+                else:
+                    # Update stock levels with latest data
+                    item_name = row.get('Item_Name', '')
+                    updated = False
+                    
+                    with open('data/sample_data/inventory_items.json', 'r') as f:
+                        items = json.load(f)
+                    
+                    for item in items:
+                        if item['name'] == item_name and item['item_id'] != 'ITEM001':
+                            row['Current_Stock'] = str(item['current_stock'])
+                            row['Last_Updated'] = date
+                            updated = True
+                            break
+                    
+                    rows.append(row)
+        
+        # Write updated current inventory template
+        with open(current_template_path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+            
+    except Exception as e:
+        print(f"Error updating current inventory template: {e}")
+    
+    # Also update Google Sheets templates folder
+    try:
+        import shutil
+        
+        # Copy updated templates to Google Sheets templates folder
+        shutil.copy(daily_template_path, 'google_sheets_templates/daily_inventory_template.csv')
+        shutil.copy(current_template_path, 'google_sheets_templates/current_inventory_template.csv')
+        
+        print("Synchronized Google Sheets templates")
+        
+    except Exception as e:
+        print(f"Error updating Google Sheets templates: {e}")
 
 @app.route('/')
 def dashboard():
@@ -203,26 +450,57 @@ def sheets_sync_page():
     """Google Sheets sync page"""
     return render_template('sheets_sync.html')
 
-@app.route('/api/upload_csv', methods=['POST'])
-def upload_csv():
-    """Upload CSV file from Google Sheets"""
+@app.route('/api/upload_daily_inventory', methods=['POST'])
+def upload_daily_inventory():
+    """Upload and automatically process daily inventory CSV file"""
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'})
         
         file = request.files['file']
-        file_type = request.form.get('file_type')
         
         if file.filename == '':
             return jsonify({'success': False, 'error': 'No file selected'})
         
-        if not file_type:
-            return jsonify({'success': False, 'error': 'File type not specified'})
+        # Save uploaded file temporarily
+        temp_filename = f"temp_daily_inventory_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        temp_file_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+        file.save(temp_file_path)
+        
+        # Process the upload: merge, calculate, and update everything automatically
+        result = process_daily_inventory_upload(temp_file_path)
+        
+        # Clean up temp file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
+
+@app.route('/api/upload_csv', methods=['POST'])
+def upload_csv():
+    """Legacy upload endpoint - redirects to daily inventory for compatibility"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'})
+        
+        file_type = request.form.get('file_type', 'daily_inventory')
+        
+        # For daily inventory or usage, use the new automated flow
+        if file_type in ['usage', 'daily_inventory']:
+            return upload_daily_inventory()
+        
+        # For other file types, use original logic
+        file = request.files['file']
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
         
         # Map file types to expected filenames
         filename_map = {
             'inventory': 'current_inventory.csv',
-            'usage': 'daily_usage.csv',
             'orders': 'order_history.csv',
             'suppliers': 'suppliers.csv'
         }
@@ -243,6 +521,27 @@ def upload_csv():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/download_template/<template_type>')
+def download_template(template_type):
+    """Download CSV templates"""
+    template_map = {
+        'current_inventory': 'current_inventory_template.csv',
+        'daily_inventory': 'daily_inventory_template.csv',
+        'order_history': 'order_history_template.csv',
+        'suppliers': 'suppliers_template.csv'
+    }
+    
+    if template_type not in template_map:
+        return jsonify({'error': 'Invalid template type'}), 400
+    
+    filename = template_map[template_type]
+    file_path = os.path.join('templates', 'csv_templates', filename)
+    
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'Template file not found'}), 404
+    
+    return send_file(file_path, as_attachment=True, download_name=filename)
 
 @app.route('/api/sync_sheets', methods=['POST'])
 def sync_sheets():
@@ -482,7 +781,7 @@ def daily_inventory_page():
     
     # Get last inventory date
     try:
-        with open('sample_data/inventory_snapshots.json', 'r') as f:
+        with open('data/sample_data/inventory_snapshots.json', 'r') as f:
             snapshots = json.load(f)
         last_date = max([s['date'] for s in snapshots]) if snapshots else None
     except:
@@ -542,7 +841,7 @@ def save_inventory_snapshot():
             print(f"Processing {len(deliveries)} deliveries")
             # Load existing order history
             try:
-                with open('sample_data/order_history.json', 'r') as f:
+                with open('data/sample_data/order_history.json', 'r') as f:
                     order_history = json.load(f)
             except:
                 order_history = []
@@ -568,7 +867,7 @@ def save_inventory_snapshot():
                 order_history.append(order_record)
             
             # Save updated order history
-            with open('sample_data/order_history.json', 'w') as f:
+            with open('data/sample_data/order_history.json', 'w') as f:
                 json.dump(order_history, f, indent=2)
             print(f"Saved {len(deliveries)} deliveries to order history")
         
@@ -580,7 +879,7 @@ def save_inventory_snapshot():
         # Update inventory_items.json current_stock with latest snapshot data
         try:
             print("Synchronizing inventory_items.json with latest snapshot...")
-            with open('sample_data/inventory_items.json', 'r') as f:
+            with open('data/sample_data/inventory_items.json', 'r') as f:
                 inventory_items = json.load(f)
             
             # Update current_stock from the latest inventory snapshot
@@ -593,13 +892,21 @@ def save_inventory_snapshot():
                         break
             
             # Save updated inventory_items.json
-            with open('sample_data/inventory_items.json', 'w') as f:
+            with open('data/sample_data/inventory_items.json', 'w') as f:
                 json.dump(inventory_items, f, indent=2)
             
             print("Successfully synchronized inventory_items.json with latest snapshot")
             
         except Exception as e:
             print(f"Warning: Could not update inventory_items.json: {e}")
+        
+        # Update CSV templates to keep them synchronized
+        try:
+            print("Synchronizing CSV templates...")
+            update_csv_templates_from_json(date, inventory)
+            print("Successfully updated CSV templates")
+        except Exception as e:
+            print(f"Warning: Could not update CSV templates: {e}")
         
         # Refresh forecasting engine with new data
         try:
@@ -626,7 +933,7 @@ def save_inventory_snapshot():
 def api_inventory_items():
     """Get inventory items for the daily inventory form"""
     try:
-        with open('sample_data/inventory_items.json', 'r') as f:
+        with open('data/sample_data/inventory_items.json', 'r') as f:
             items = json.load(f)
         return jsonify(items)
     except Exception as e:

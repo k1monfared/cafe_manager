@@ -37,7 +37,7 @@ class OrderRecommendation:
     estimated_cost: float
 
 class ForecastingEngine:
-    def __init__(self, data_dir: str = "sample_data"):
+    def __init__(self, data_dir: str = "data/sample_data"):
         self.data_dir = data_dir
         self.inventory_items = {}
         self.suppliers = {}

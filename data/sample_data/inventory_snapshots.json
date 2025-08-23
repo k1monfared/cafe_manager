@@ -174,5 +174,61 @@
     "waste_amount": 0.0,
     "deliveries_received": 0.0,
     "notes": "Testing sync - lower"
+  },
+  {
+    "date": "2025-08-25",
+    "item_id": "ITEM002",
+    "stock_level": 1.2,
+    "waste_amount": 0.2,
+    "deliveries_received": 0.0,
+    "notes": "Testing CSV sync - very low milk"
+  },
+  {
+    "date": "2025-08-25",
+    "item_id": "ITEM003",
+    "stock_level": 2.1,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Testing CSV sync - low coffee"
+  },
+  {
+    "date": "2025-08-25",
+    "item_id": "ITEM004",
+    "stock_level": 0.8,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Critical - below minimum cups"
+  },
+  {
+    "date": "2025-08-26",
+    "item_id": "ITEM002",
+    "stock_level": 7.8,
+    "waste_amount": 0.2,
+    "deliveries_received": 5.0,
+    "notes": "Updated count with delivery"
+  },
+  {
+    "date": "2025-08-26",
+    "item_id": "ITEM003",
+    "stock_level": 5.9,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Corrected evening count"
+  },
+  {
+    "date": "2025-08-26",
+    "item_id": "ITEM004",
+    "stock_level": 2.5,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Critical - order today"
+  },
+  {
+    "date": "2025-08-26",
+    "item_id": "ITEM005",
+    "stock_level": 4.2,
+    "waste_amount": 0.0,
+    "deliveries_received": 0.0,
+    "notes": "Still good supply"
   }
 ]
