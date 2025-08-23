@@ -44,6 +44,7 @@ class ForecastingEngine:
         self.usage_history = []
         self.order_history = []
         self.usage_patterns = {}
+        self.usage_calculator = None
         self._load_data()
     
     def _load_data(self):
@@ -62,9 +63,34 @@ class ForecastingEngine:
             
             with open(f"{self.data_dir}/order_history.json", 'r') as f:
                 self.order_history = json.load(f)
+            
+            # Initialize usage calculator for automatic usage calculation
+            try:
+                from usage_calculator import UsageCalculator
+                self.usage_calculator = UsageCalculator(self.data_dir)
+                self.usage_calculator.load_data()
+            except ImportError:
+                print("Warning: Usage calculator not available")
                 
         except FileNotFoundError as e:
             print(f"Warning: Could not load data file: {e}")
+    
+    def refresh_usage_from_inventory_snapshots(self):
+        """Update usage history from inventory snapshots"""
+        if self.usage_calculator:
+            try:
+                # Calculate usage from snapshots and update the daily_usage.json file
+                records_updated = self.usage_calculator.update_daily_usage_file()
+                
+                # Reload usage history
+                with open(f"{self.data_dir}/daily_usage.json", 'r') as f:
+                    self.usage_history = json.load(f)
+                
+                return records_updated
+            except Exception as e:
+                print(f"Error refreshing usage from snapshots: {e}")
+                return 0
+        return 0
     
     def analyze_usage_patterns(self) -> Dict[str, UsagePattern]:
         """Analyze historical usage to identify patterns"""

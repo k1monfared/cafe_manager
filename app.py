@@ -13,6 +13,7 @@ from sheets_sync import SheetsSync
 from werkzeug.utils import secure_filename
 from google_drive_integration import GoogleDriveIntegration
 from sync_scheduler import get_scheduler
+from usage_calculator import UsageCalculator
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cafe-supply-manager-2025'
@@ -22,11 +23,12 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Initialize forecasting engine, sheets sync, Google Drive, and scheduler
+# Initialize forecasting engine, sheets sync, Google Drive, scheduler, and usage calculator
 forecast_engine = ForecastingEngine()
 sheets_sync = SheetsSync()
 google_drive = GoogleDriveIntegration()
 sync_scheduler = get_scheduler()
+usage_calculator = UsageCalculator()
 
 @app.route('/')
 def dashboard():
@@ -471,6 +473,140 @@ def disable_auto_sync():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# New Daily Inventory Routes
+@app.route('/daily-inventory')
+def daily_inventory_page():
+    """Daily inventory entry page"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # Get last inventory date
+    try:
+        with open('sample_data/inventory_snapshots.json', 'r') as f:
+            snapshots = json.load(f)
+        last_date = max([s['date'] for s in snapshots]) if snapshots else None
+    except:
+        last_date = None
+    
+    return render_template('daily_inventory.html', today_date=today, last_inventory_date=last_date)
+
+@app.route('/api/inventory_snapshot/<date>')
+def get_inventory_snapshot(date):
+    """Get inventory snapshot for a specific date"""
+    try:
+        usage_calculator.load_data()
+        snapshots = [s for s in usage_calculator.inventory_snapshots if s.get('date') == date]
+        
+        return jsonify({
+            'success': True,
+            'snapshot': snapshots
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/save_inventory_snapshot', methods=['POST'])
+def save_inventory_snapshot():
+    """Save daily inventory snapshot and calculate usage"""
+    try:
+        print("=== Save Inventory Snapshot Called ===")
+        data = request.get_json()
+        print(f"Received data: {data}")
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'})
+        
+        date = data.get('date')
+        inventory = data.get('inventory', [])
+        deliveries = data.get('deliveries', [])
+        
+        print(f"Date: {date}, Inventory items: {len(inventory)}, Deliveries: {len(deliveries)}")
+        
+        if not date:
+            return jsonify({'success': False, 'error': 'Date is required'})
+        
+        if not inventory:
+            return jsonify({'success': False, 'error': 'Inventory data is required'})
+        
+        # Save inventory snapshot
+        usage_calculator.load_data()
+        print("UsageCalculator loaded successfully")
+        
+        success = usage_calculator.add_inventory_snapshot(date, inventory)
+        print(f"Inventory snapshot save result: {success}")
+        
+        if not success:
+            return jsonify({'success': False, 'error': 'Failed to save inventory snapshot'})
+        
+        # Process any deliveries by creating order records
+        if deliveries:
+            print(f"Processing {len(deliveries)} deliveries")
+            # Load existing order history
+            try:
+                with open('sample_data/order_history.json', 'r') as f:
+                    order_history = json.load(f)
+            except:
+                order_history = []
+            
+            # Create delivery orders
+            for delivery in deliveries:
+                order_id = f"DEL-{date}-{len(order_history) + 1:03d}"
+                order_record = {
+                    "order_id": order_id,
+                    "order_date": date,
+                    "supplier_id": delivery['supplier_id'],
+                    "delivery_date": date,
+                    "total_cost": 0.0,  # Would need item pricing
+                    "status": "delivered",
+                    "line_items": [{
+                        "item_id": delivery['item_id'],
+                        "quantity_ordered": delivery['quantity'],
+                        "quantity_received": delivery['quantity'],
+                        "unit_cost": 0.0,  # Would need pricing
+                        "line_total": 0.0
+                    }]
+                }
+                order_history.append(order_record)
+            
+            # Save updated order history
+            with open('sample_data/order_history.json', 'w') as f:
+                json.dump(order_history, f, indent=2)
+            print(f"Saved {len(deliveries)} deliveries to order history")
+        
+        # Calculate usage from snapshots and update daily_usage.json
+        print("Calculating usage from snapshots...")
+        records_updated = usage_calculator.update_daily_usage_file()
+        print(f"Updated {records_updated} usage records")
+        
+        # Refresh forecasting engine with new data
+        try:
+            global forecast_engine
+            forecast_engine = ForecastingEngine()
+            print("Forecasting engine refreshed")
+        except Exception as e:
+            print(f"Warning: Could not refresh forecasting engine: {e}")
+            # Don't fail the whole operation if forecasting engine fails
+        
+        return jsonify({
+            'success': True,
+            'usage_records_updated': records_updated,
+            'deliveries_processed': len(deliveries)
+        })
+        
+    except Exception as e:
+        print(f"Error in save_inventory_snapshot: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/inventory_items')
+def api_inventory_items():
+    """Get inventory items for the daily inventory form"""
+    try:
+        with open('sample_data/inventory_items.json', 'r') as f:
+            items = json.load(f)
+        return jsonify(items)
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist

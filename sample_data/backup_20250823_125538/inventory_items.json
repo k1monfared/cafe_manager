@@ -24,7 +24,7 @@
     "min_threshold": 3.0,
     "max_capacity": 20.0,
     "cost_per_unit": 4.25,
-    "supplier_id": "SUP002",
+    "supplier_id": "SUP001",
     "lead_time_days": 1,
     "shelf_life_days": 10,
     "storage_requirements": "Refrigerated 35-38\u00b0F"

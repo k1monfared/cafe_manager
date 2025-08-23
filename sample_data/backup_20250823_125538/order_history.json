@@ -2,7 +2,7 @@
   {
     "order_id": "ORD001",
     "order_date": "2025-01-01",
-    "supplier_id": "SUP002",
+    "supplier_id": "SUP001",
     "delivery_date": "2025-01-02",
     "total_cost": 85.0,
     "status": "delivered",

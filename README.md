@@ -24,37 +24,52 @@ A simple, intelligent inventory management system designed specifically for coff
 
 The system starts with **empty data files** - you need to add your own information! Here's how:
 
-#### Option 1: Use Google Sheets (Recommended)
+#### 🎯 **EASIEST METHOD: Daily Inventory Counts**
+
+**New Simplified Workflow:**
+1. **Set up your items once** using the Current Inventory template
+2. **Every day, just count what you have** using the Daily Inventory page
+3. **The system automatically calculates usage** by comparing today's count with yesterday's
+
+This is much easier than tracking usage manually! Just walk around your cafe and count what's on your shelves.
+
+#### Setup Options:
+
+**Option 1: Use the Web Interface (Recommended)**
+1. **Go to "Daily Inventory"** in the sidebar
+2. **Enter your current stock levels** - just count what you have
+3. **Add any deliveries received** (optional)
+4. **Save** - the system calculates usage automatically
+
+**Option 2: Use Google Sheets**
 1. **Copy the templates** from `google_sheets_templates/` folder to Google Sheets
-2. **Fill in your data** using Google Sheets (much easier than editing files!)
+2. **Use the new `daily_inventory_template.csv`** for your daily counts
 3. **Export as CSV** and upload through the web interface
 
-#### Option 2: Edit CSV Templates Directly
-1. **Open the template files** in `static/templates/` with Excel or Google Sheets
-2. **Replace the example data** with your actual inventory, suppliers, etc.
-3. **Follow the instructions** in row 2 of each template
+**Option 3: Edit CSV Templates Directly**
+1. **Open `daily_inventory_template.csv`** with Excel or Google Sheets
+2. **Enter today's date and your current stock counts**
+3. **Upload through the web interface**
 
-#### What Data to Enter:
+#### Initial Setup Data:
 
-**Current Inventory** (`current_inventory_template.csv`):
+**Current Inventory** (one-time setup):
 - Your actual items: "Whole Milk", "House Blend Coffee", etc.
-- Current stock levels and storage limits
+- Storage limits and reorder thresholds
 - Supplier information and costs
 
-**Daily Usage** (`daily_usage_template.csv`):
-- How much of each item you use daily
-- Include waste/spoilage amounts
-- Add weather and sales data if you track it
-
-**Order History** (`order_history_template.csv`):
-- Your past orders and deliveries
-- What you ordered vs what you received
-- Costs and payment status
-
-**Suppliers** (`suppliers_template.csv`):
+**Suppliers** (one-time setup):
 - Contact info for your suppliers
 - Delivery schedules and minimum orders
 - Payment terms
+
+#### Daily Data Entry:
+
+**Daily Inventory Counts** (the only thing you need to do daily):
+- Count what you currently have on hand
+- Optional: Note any waste/spoilage
+- Optional: Record deliveries received
+- The system calculates usage automatically: `Usage = Yesterday's Stock + Deliveries - Today's Stock`
 
 ### Step 3: Start Getting Recommendations
 Once you've added some data (even just a few days worth), the system will:

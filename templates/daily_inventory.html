@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Inventory Count{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">📋 Daily Inventory Count</h1>
+                    <p class="text-muted">Just count what you have - we'll calculate usage automatically</p>
+                </div>
+                <div>
+                    <button class="btn btn-success" id="saveInventory">
+                        <i class="fas fa-save"></i> Save Today's Count
+                    </button>
+                </div>
+            </div>
+
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle"></i> 
+                <strong>How it works:</strong> Enter your current stock levels below. The system will compare with yesterday's counts and calculate how much you used automatically.
+            </div>
+
+            <!-- Date Selection -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <label for="inventoryDate" class="form-label">Inventory Date:</label>
+                            <input type="date" class="form-control" id="inventoryDate" value="{{ today_date }}">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <small class="text-muted">Last inventory: {{ last_inventory_date or 'Never' }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Form -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">Current Stock Levels</h5>
+                        </div>
+                        <div class="col-auto">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showOnlyLow">
+                                <label class="form-check-label" for="showOnlyLow">
+                                    Show only low stock items
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="inventoryGrid">
+                        <!-- Inventory items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📦 Deliveries Received Today</h5>
+                    <small class="text-muted">Optional: Record any deliveries you received today</small>
+                </div>
+                <div class="card-body">
+                    <div id="deliveriesSection">
+                        <p class="text-muted">No deliveries recorded for today. <a href="#" id="addDelivery">Add delivery</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delivery Modal -->
+<div class="modal fade" id="deliveryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Delivery</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Item</label>
+                    <select class="form-select" id="deliveryItem">
+                        <option value="">Select item...</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantity Received</label>
+                    <input type="number" class="form-control" id="deliveryQuantity" step="0.1" min="0">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Supplier</label>
+                    <select class="form-select" id="deliverySupplier">
+                        <option value="">Select supplier...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveDelivery">Save Delivery</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let inventoryData = {};
+let currentDate = '';
+let deliveries = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    currentDate = document.getElementById('inventoryDate').value;
+    loadInventoryItems();
+    loadExistingSnapshot();
+    loadSuppliers();
+    
+    // Event listeners
+    document.getElementById('inventoryDate').addEventListener('change', function() {
+        currentDate = this.value;
+        loadExistingSnapshot();
+    });
+    
+    document.getElementById('showOnlyLow').addEventListener('change', function() {
+        filterInventoryItems(this.checked);
+    });
+    
+    document.getElementById('saveInventory').addEventListener('click', saveInventorySnapshot);
+    document.getElementById('addDelivery').addEventListener('click', function() {
+        new bootstrap.Modal(document.getElementById('deliveryModal')).show();
+    });
+    
+    document.getElementById('saveDelivery').addEventListener('click', saveDelivery);
+});
+
+function loadInventoryItems() {
+    fetch('/api/inventory_items')
+        .then(response => response.json())
+        .then(data => {
+            inventoryData = {};
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = '';
+            
+            data.forEach(item => {
+                inventoryData[item.item_id] = {
+                    ...item,
+                    current_count: item.current_stock,
+                    waste_amount: 0,
+                    notes: ''
+                };
+                
+                const itemCard = createInventoryItemCard(item);
+                grid.appendChild(itemCard);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading inventory items:', error);
+            showAlert('Error loading inventory items', 'danger');
+        });
+}
+
+function createInventoryItemCard(item) {
+    const div = document.createElement('div');
+    div.className = 'col-md-6 col-lg-4 mb-3';
+    div.setAttribute('data-item-id', item.item_id);
+    
+    const stockLevel = item.current_stock || 0;
+    const minThreshold = item.min_threshold || 0;
+    const isLow = stockLevel <= minThreshold;
+    
+    div.innerHTML = `
+        <div class="card h-100 ${isLow ? 'border-warning' : ''}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="card-title mb-0">${item.name}</h6>
+                    ${isLow ? '<span class="badge bg-warning">LOW</span>' : ''}
+                </div>
+                <p class="text-muted small mb-3">${item.category} • ${item.unit}</p>
+                
+                <div class="mb-3">
+                    <label class="form-label small">Current Stock</label>
+                    <div class="input-group">
+                        <input type="number" 
+                               class="form-control stock-input" 
+                               data-item-id="${item.item_id}"
+                               value="${stockLevel}"
+                               step="0.1" min="0"
+                               placeholder="Count...">
+                        <span class="input-group-text">${item.unit}</span>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label small">Waste</label>
+                        <input type="number" 
+                               class="form-control waste-input" 
+                               data-item-id="${item.item_id}"
+                               value="0"
+                               step="0.1" min="0"
+                               placeholder="0">
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Previous: ${item.current_stock || 0}</small>
+                    </div>
+                </div>
+                
+                <div class="mt-2">
+                    <input type="text" 
+                           class="form-control form-control-sm notes-input" 
+                           data-item-id="${item.item_id}"
+                           placeholder="Notes (optional)">
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return div;
+}
+
+function loadExistingSnapshot() {
+    fetch(`/api/inventory_snapshot/${currentDate}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.snapshot) {
+                // Populate form with existing data
+                data.snapshot.forEach(item => {
+                    const stockInput = document.querySelector(`input.stock-input[data-item-id="${item.item_id}"]`);
+                    const wasteInput = document.querySelector(`input.waste-input[data-item-id="${item.item_id}"]`);
+                    const notesInput = document.querySelector(`input.notes-input[data-item-id="${item.item_id}"]`);
+                    
+                    if (stockInput) stockInput.value = item.stock_level;
+                    if (wasteInput) wasteInput.value = item.waste_amount || 0;
+                    if (notesInput) notesInput.value = item.notes || '';
+                });
+                
+                showAlert(`Loaded existing inventory for ${currentDate}`, 'info');
+            }
+        })
+        .catch(error => {
+            console.log('No existing snapshot found for this date');
+        });
+}
+
+function filterInventoryItems(showOnlyLow) {
+    const items = document.querySelectorAll('[data-item-id]');
+    items.forEach(item => {
+        if (showOnlyLow) {
+            const hasWarning = item.querySelector('.border-warning') !== null;
+            item.style.display = hasWarning ? 'block' : 'none';
+        } else {
+            item.style.display = 'block';
+        }
+    });
+}
+
+function saveInventorySnapshot() {
+    console.log('=== Save Inventory Snapshot Started ===');
+    const snapshot = [];
+    
+    document.querySelectorAll('.stock-input').forEach(input => {
+        const itemId = input.getAttribute('data-item-id');
+        const stockLevel = parseFloat(input.value) || 0;
+        const wasteInput = document.querySelector(`input.waste-input[data-item-id="${itemId}"]`);
+        const notesInput = document.querySelector(`input.notes-input[data-item-id="${itemId}"]`);
+        
+        const item = {
+            item_id: itemId,
+            stock_level: stockLevel,
+            waste_amount: parseFloat(wasteInput?.value) || 0,
+            notes: notesInput?.value || '',
+            deliveries_received: 0  // Will be updated if there are deliveries
+        };
+        
+        console.log(`Adding item to snapshot:`, item);
+        snapshot.push(item);
+    });
+    
+    const data = {
+        date: currentDate,
+        inventory: snapshot,
+        deliveries: deliveries
+    };
+    
+    console.log('Sending data to server:', data);
+    console.log(`Found ${snapshot.length} inventory items`);
+    
+    if (snapshot.length === 0) {
+        showAlert('No inventory items found. Please make sure items are loaded.', 'warning');
+        return;
+    }
+    
+    // Show loading state
+    const saveButton = document.getElementById('saveInventory');
+    const originalText = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveButton.disabled = true;
+    
+    fetch('/api/save_inventory_snapshot', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Server response:', data);
+        if (data.success) {
+            showAlert(`Inventory saved successfully! ${data.usage_records_updated || 0} usage records updated.`, 'success');
+            
+            // Update the "last inventory" display
+            const lastInventoryElement = document.querySelector('.text-muted small');
+            if (lastInventoryElement) {
+                lastInventoryElement.textContent = `Last inventory: ${currentDate}`;
+            }
+        } else {
+            showAlert('Error saving inventory: ' + (data.error || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error saving inventory: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+    });
+}
+
+function loadSuppliers() {
+    fetch('/api/suppliers')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('deliverySupplier');
+            data.forEach(supplier => {
+                const option = document.createElement('option');
+                option.value = supplier.supplier_id;
+                option.textContent = supplier.name;
+                select.appendChild(option);
+            });
+            
+            const itemSelect = document.getElementById('deliveryItem');
+            Object.values(inventoryData).forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.item_id;
+                option.textContent = item.name;
+                itemSelect.appendChild(option);
+            });
+        });
+}
+
+function saveDelivery() {
+    const itemId = document.getElementById('deliveryItem').value;
+    const quantity = parseFloat(document.getElementById('deliveryQuantity').value);
+    const supplierId = document.getElementById('deliverySupplier').value;
+    
+    if (!itemId || !quantity || !supplierId) {
+        showAlert('Please fill in all delivery fields', 'warning');
+        return;
+    }
+    
+    const delivery = {
+        item_id: itemId,
+        quantity: quantity,
+        supplier_id: supplierId,
+        date: currentDate
+    };
+    
+    deliveries.push(delivery);
+    
+    // Update the deliveries display
+    updateDeliveriesDisplay();
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('deliveryModal')).hide();
+    
+    // Clear form
+    document.getElementById('deliveryItem').value = '';
+    document.getElementById('deliveryQuantity').value = '';
+    document.getElementById('deliverySupplier').value = '';
+}
+
+function updateDeliveriesDisplay() {
+    const section = document.getElementById('deliveriesSection');
+    if (deliveries.length > 0) {
+        let html = '<div class="list-group">';
+        deliveries.forEach((delivery, index) => {
+            const item = inventoryData[delivery.item_id];
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${item?.name || delivery.item_id}</strong> - ${delivery.quantity} ${item?.unit || 'units'}
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeDelivery(${index})">Remove</button>
+                </div>
+            `;
+        });
+        html += '</div>';
+        html += `<p class="mt-2"><a href="#" id="addDelivery">Add another delivery</a></p>`;
+        section.innerHTML = html;
+        
+        // Re-attach event listener
+        document.getElementById('addDelivery').addEventListener('click', function() {
+            new bootstrap.Modal(document.getElementById('deliveryModal')).show();
+        });
+    } else {
+        section.innerHTML = '<p class="text-muted">No deliveries recorded for today. <a href="#" id="addDelivery">Add delivery</a></p>';
+        document.getElementById('addDelivery').addEventListener('click', function() {
+            new bootstrap.Modal(document.getElementById('deliveryModal')).show();
+        });
+    }
+}
+
+function removeDelivery(index) {
+    deliveries.splice(index, 1);
+    updateDeliveriesDisplay();
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
