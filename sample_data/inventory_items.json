@@ -1,1 +1,77 @@
-[]
+[
+  {
+    "item_id": "ITEM001",
+    "name": "\ud83d\udcdd INSTRUCTIONS: Replace this row with your real data. Keep column names unchanged.",
+    "category": "dairy/coffee/supplies/syrups/etc",
+    "subcategory": "dairy/coffee/supplies/syrups/etc",
+    "unit": "lbs/gallons/cases/bottles/pieces",
+    "current_stock": 0.0,
+    "min_threshold": 0.0,
+    "max_capacity": 0.0,
+    "cost_per_unit": 0.0,
+    "supplier_id": "SUP001",
+    "lead_time_days": 0,
+    "shelf_life_days": 0,
+    "storage_requirements": "Cool dry place/refrigerated/etc"
+  },
+  {
+    "item_id": "ITEM002",
+    "name": "Whole Milk",
+    "category": "dairy",
+    "subcategory": "dairy",
+    "unit": "gallons",
+    "current_stock": 10.0,
+    "min_threshold": 3.0,
+    "max_capacity": 20.0,
+    "cost_per_unit": 4.25,
+    "supplier_id": "SUP001",
+    "lead_time_days": 1,
+    "shelf_life_days": 10,
+    "storage_requirements": "Refrigerated 35-38\u00b0F"
+  },
+  {
+    "item_id": "ITEM003",
+    "name": "House Blend Coffee",
+    "category": "coffee",
+    "subcategory": "coffee",
+    "unit": "lbs",
+    "current_stock": 5.0,
+    "min_threshold": 2.0,
+    "max_capacity": 15.0,
+    "cost_per_unit": 8.5,
+    "supplier_id": "SUP001",
+    "lead_time_days": 3,
+    "shelf_life_days": 365,
+    "storage_requirements": "Cool dry place"
+  },
+  {
+    "item_id": "ITEM004",
+    "name": "12oz Paper Cups",
+    "category": "supplies",
+    "subcategory": "supplies",
+    "unit": "cases",
+    "current_stock": 2.0,
+    "min_threshold": 1.0,
+    "max_capacity": 8.0,
+    "cost_per_unit": 42.0,
+    "supplier_id": "SUP001",
+    "lead_time_days": 7,
+    "shelf_life_days": 730,
+    "storage_requirements": "Dry storage"
+  },
+  {
+    "item_id": "ITEM005",
+    "name": "Vanilla Syrup",
+    "category": "syrups",
+    "subcategory": "syrups",
+    "unit": "bottles",
+    "current_stock": 3.0,
+    "min_threshold": 1.0,
+    "max_capacity": 10.0,
+    "cost_per_unit": 9.25,
+    "supplier_id": "SUP001",
+    "lead_time_days": 4,
+    "shelf_life_days": 180,
+    "storage_requirements": "Room temperature"
+  }
+]

@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "date": "2025-01-01",
+    "item_id": "ITEM002",
+    "quantity_used": 2.5,
+    "waste_amount": 0.1,
+    "sales_volume": 75,
+    "notes": "New Year's Day - busy",
+    "weather": "Sunny",
+    "special_events": "nan"
+  },
+  {
+    "date": "2025-01-01",
+    "item_id": "ITEM003",
+    "quantity_used": 1.2,
+    "waste_amount": 0.0,
+    "sales_volume": 85,
+    "notes": "Good sales day",
+    "weather": "Sunny",
+    "special_events": "nan"
+  },
+  {
+    "date": "2025-01-01",
+    "item_id": "ITEM004",
+    "quantity_used": 0.5,
+    "waste_amount": 0.0,
+    "sales_volume": 75,
+    "notes": "Regular usage",
+    "weather": "Sunny",
+    "special_events": "nan"
+  },
+  {
+    "date": "2025-01-02",
+    "item_id": "ITEM002",
+    "quantity_used": 3.2,
+    "waste_amount": 0.2,
+    "sales_volume": 95,
+    "notes": "High latte demand",
+    "weather": "Cloudy",
+    "special_events": "nan"
+  }
+]

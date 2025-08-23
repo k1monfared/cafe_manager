@@ -1,1 +1,57 @@
-[]
+[
+  {
+    "supplier_id": "SUP001",
+    "name": "\ud83d\udcdd INSTRUCTIONS: Enter supplier business name",
+    "contact_phone": "Main phone number",
+    "contact_email": "Orders email address",
+    "lead_time_days": 0,
+    "minimum_order_value": 0.0,
+    "payment_terms": "Net 7, Net 15, Net 30, etc",
+    "reliability_rating": 1,
+    "specialty": "What they supply"
+  },
+  {
+    "supplier_id": "SUP002",
+    "name": "Metro Dairy Supply",
+    "contact_phone": "(555) 234-5678",
+    "contact_email": "orders@metrodairysupply.com",
+    "lead_time_days": 1,
+    "minimum_order_value": 200.0,
+    "payment_terms": "Net 15",
+    "reliability_rating": 4,
+    "specialty": "Dairy products"
+  },
+  {
+    "supplier_id": "SUP003",
+    "name": "Flavor Solutions Inc",
+    "contact_phone": "(555) 567-8901",
+    "contact_email": "orders@flavorsolutionsinc.com",
+    "lead_time_days": 4,
+    "minimum_order_value": 100.0,
+    "payment_terms": "Net 30",
+    "reliability_rating": 4,
+    "specialty": "Syrups and flavorings"
+  },
+  {
+    "supplier_id": "SUP004",
+    "name": "Pacific Coffee Roasters",
+    "contact_phone": "(555) 345-6789",
+    "contact_email": "orders@pacificcoffeeroasters.com",
+    "lead_time_days": 3,
+    "minimum_order_value": 200.0,
+    "payment_terms": "Net 15",
+    "reliability_rating": 4,
+    "specialty": "Coffee beans and equipment"
+  },
+  {
+    "supplier_id": "SUP005",
+    "name": "Restaurant Supply Co",
+    "contact_phone": "(555) 456-7890",
+    "contact_email": "orders@restaurantsupplyco.com",
+    "lead_time_days": 7,
+    "minimum_order_value": 200.0,
+    "payment_terms": "Net 30",
+    "reliability_rating": 4,
+    "specialty": "Paper products and supplies"
+  }
+]
