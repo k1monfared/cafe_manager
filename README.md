@@ -4,19 +4,63 @@ A simple, intelligent inventory management system designed specifically for coff
 
 ## 🚀 Quick Start (Non-Technical Users)
 
-### Windows Users:
+### Step 1: Get the System Running
+
+#### Windows Users:
 1. **Download Python**: Go to https://python.org and download Python 3.8 or newer
 2. **Download this folder** to your computer 
 3. **Double-click** `run_cafe_manager.py` - it will handle everything automatically!
 4. **Your web browser** will open to http://localhost:5000
 
-### Mac/Linux Users:
+#### Mac/Linux Users:
 1. Open Terminal
 2. Navigate to this folder: `cd path/to/cafe_manager`
 3. Run: `python3 run_cafe_manager.py`
 4. Open http://localhost:5000 in your browser
 
 **That's it!** The system will install what it needs and start automatically.
+
+### Step 2: Add Your Data
+
+The system starts with **empty data files** - you need to add your own information! Here's how:
+
+#### Option 1: Use Google Sheets (Recommended)
+1. **Copy the templates** from `google_sheets_templates/` folder to Google Sheets
+2. **Fill in your data** using Google Sheets (much easier than editing files!)
+3. **Export as CSV** and upload through the web interface
+
+#### Option 2: Edit CSV Templates Directly
+1. **Open the template files** in `static/templates/` with Excel or Google Sheets
+2. **Replace the example data** with your actual inventory, suppliers, etc.
+3. **Follow the instructions** in row 2 of each template
+
+#### What Data to Enter:
+
+**Current Inventory** (`current_inventory_template.csv`):
+- Your actual items: "Whole Milk", "House Blend Coffee", etc.
+- Current stock levels and storage limits
+- Supplier information and costs
+
+**Daily Usage** (`daily_usage_template.csv`):
+- How much of each item you use daily
+- Include waste/spoilage amounts
+- Add weather and sales data if you track it
+
+**Order History** (`order_history_template.csv`):
+- Your past orders and deliveries
+- What you ordered vs what you received
+- Costs and payment status
+
+**Suppliers** (`suppliers_template.csv`):
+- Contact info for your suppliers
+- Delivery schedules and minimum orders
+- Payment terms
+
+### Step 3: Start Getting Recommendations
+Once you've added some data (even just a few days worth), the system will:
+- **Show your current inventory status**
+- **Predict what you'll need to order soon**
+- **Learn your usage patterns** and improve over time
 
 ## 📊 What This System Does
 
