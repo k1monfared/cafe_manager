@@ -277,33 +277,38 @@ class InventoryEngine:
             days_remaining = item['Days_Remaining']
             unit = item['Unit']
             
-            # Determine if recommendation is needed
+            # Calculate recommended order quantity for ALL items
+            # Target: 80% of max capacity
+            target_stock = max_capacity * 0.8
+            
+            # Account for consumption during lead time
+            consumption_during_lead_time = avg_consumption * lead_time
+            
+            # Recommended quantity (may be 0 for well-stocked items)
+            recommended_quantity = target_stock - current_stock + consumption_during_lead_time
+            recommended_quantity = max(0, round(recommended_quantity, 1))
+            
+            # Determine urgency and status for ALL items
             critical_days = lead_time + buffer_days
             
-            if days_remaining <= critical_days:
-                # Calculate recommended order quantity
-                # Target: 80% of max capacity
-                target_stock = max_capacity * 0.8
-                
-                # Account for consumption during lead time
-                consumption_during_lead_time = avg_consumption * lead_time
-                
-                # Recommended quantity
-                recommended_quantity = target_stock - current_stock + consumption_during_lead_time
-                recommended_quantity = max(0, round(recommended_quantity, 1))
-                
-                # Determine urgency
-                if days_remaining <= lead_time:
-                    urgency = "CRITICAL"
-                    urgency_reason = f"Will run out in {days_remaining:.1f} days, but supplier needs {lead_time} days"
-                elif days_remaining <= critical_days:
-                    urgency = "HIGH"
-                    urgency_reason = f"Will run out in {days_remaining:.1f} days, need to order soon"
-                else:
-                    urgency = "MEDIUM"
-                    urgency_reason = f"Getting low, good time to reorder"
-                
-                # Create detailed explanation
+            if days_remaining <= lead_time:
+                urgency = "CRITICAL"
+                urgency_reason = f"Will run out in {days_remaining:.1f} days, but supplier needs {lead_time} days"
+            elif days_remaining <= critical_days:
+                urgency = "HIGH"
+                urgency_reason = f"Will run out in {days_remaining:.1f} days, need to order soon"
+            elif days_remaining <= (critical_days + 7):  # Within a week of critical
+                urgency = "MEDIUM"
+                urgency_reason = f"Getting low, good time to reorder"
+            elif recommended_quantity > 0:
+                urgency = "LOW"
+                urgency_reason = f"Stock adequate, optional reorder available"
+            else:
+                urgency = "GOOD"
+                urgency_reason = f"Stock level is good, no action needed"
+            
+            # Create detailed explanation
+            if recommended_quantity > 0:
                 explanation = f"""
 Current stock: {current_stock:.1f} {unit}
 Daily usage: {avg_consumption:.1f} {unit}/day (14-day average)
@@ -319,21 +324,35 @@ Calculation:
 
 Reason: {urgency_reason}
                 """.strip()
-                
-                recommendations.append({
-                    'Item_Name': item_name,
-                    'Current_Stock': current_stock,
-                    'Recommended_Quantity': recommended_quantity,
-                    'Unit': unit,
-                    'Urgency': urgency,
-                    'Days_Remaining': days_remaining,
-                    'Urgency_Reason': urgency_reason,
-                    'Detailed_Explanation': explanation,
-                    'Target_Stock_Level': target_stock,
-                    'Lead_Time_Days': lead_time,
-                    'Avg_Daily_Usage': avg_consumption,
-                    'Generated_Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                })
+            else:
+                explanation = f"""
+Current stock: {current_stock:.1f} {unit}
+Daily usage: {avg_consumption:.1f} {unit}/day (14-day average)
+Days remaining: {days_remaining:.1f} days
+Lead time: {lead_time} days
+Minimum threshold: {min_threshold:.1f} {unit}
+Maximum capacity: {max_capacity:.1f} {unit}
+
+Status: Stock level is sufficient. Current stock exceeds target level.
+No order needed at this time.
+
+Reason: {urgency_reason}
+                """.strip()
+            
+            recommendations.append({
+                'Item_Name': item_name,
+                'Current_Stock': current_stock,
+                'Recommended_Quantity': recommended_quantity,
+                'Unit': unit,
+                'Urgency': urgency,
+                'Days_Remaining': days_remaining,
+                'Urgency_Reason': urgency_reason,
+                'Detailed_Explanation': explanation,
+                'Target_Stock_Level': target_stock,
+                'Lead_Time_Days': lead_time,
+                'Avg_Daily_Usage': avg_consumption,
+                'Generated_Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
         
         recommendations_df = pd.DataFrame(recommendations)
         

@@ -1,23 +1,29 @@
 <div class="table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover" id="recommendationTable">
         <thead>
             <tr>
-                <th><i class="bi bi-box"></i> Item</th>
-                <th><i class="bi bi-cart-plus"></i> Order Quantity</th>
-                <th><i class="bi bi-exclamation-triangle"></i> Urgency</th>
-                <th><i class="bi bi-clock"></i> Days Remaining</th>
-                <th><i class="bi bi-graph-down"></i> Current Stock</th>
-                <th><i class="bi bi-speedometer2"></i> Daily Usage</th>
+                <th class="sortable" data-sort="item"><i class="bi bi-box"></i> Item <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable" data-sort="quantity"><i class="bi bi-cart-plus"></i> Order Quantity <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable" data-sort="urgency"><i class="bi bi-exclamation-triangle"></i> Urgency <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable" data-sort="days"><i class="bi bi-clock"></i> Days Remaining <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable" data-sort="stock"><i class="bi bi-graph-down"></i> Current Stock <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable" data-sort="usage"><i class="bi bi-speedometer2"></i> Daily Usage <i class="bi bi-arrow-down-up sort-icon"></i></th>
                 <th><i class="bi bi-info-circle"></i> Reason</th>
                 <th><i class="bi bi-list-ul"></i> Details</th>
             </tr>
         </thead>
         <tbody>
             {% for rec in recommendations %}
-            <tr class="table-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' }}">
+            <tr class="table-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' if rec.Urgency == 'MEDIUM' else 'light' if rec.Urgency == 'LOW' else '' }}" 
+                data-item="{{ rec.Item_Name }}" 
+                data-quantity="{{ rec.Recommended_Quantity }}" 
+                data-urgency="{{ {'CRITICAL': 1, 'HIGH': 2, 'MEDIUM': 3, 'LOW': 4, 'GOOD': 5}[rec.Urgency] }}" 
+                data-days="{{ rec.Days_Remaining }}" 
+                data-stock="{{ rec.Current_Stock }}" 
+                data-usage="{{ rec.Avg_Daily_Usage }}">
                 <td><strong>{{ rec.Item_Name }}</strong></td>
                 <td><strong>{{ "%.1f"|format(rec.Recommended_Quantity) }} {{ rec.Unit }}</strong></td>
-                <td><span class="badge bg-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'secondary' }}">{{ rec.Urgency }}</span></td>
+                <td><span class="badge bg-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' if rec.Urgency == 'MEDIUM' else 'secondary' if rec.Urgency == 'LOW' else 'success' }}">{{ rec.Urgency }}</span></td>
                 <td>{{ "%.1f"|format(rec.Days_Remaining) }} days</td>
                 <td>{{ "%.1f"|format(rec.Current_Stock) }} {{ rec.Unit }}</td>
                 <td>{{ "%.1f"|format(rec.Avg_Daily_Usage) }} {{ rec.Unit }}/day</td>
@@ -55,3 +61,133 @@
         </tbody>
     </table>
 </div>
+
+<style>
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+.sortable:hover {
+    background-color: #f8f9fa;
+}
+.sort-icon {
+    opacity: 0.3;
+    font-size: 0.8em;
+}
+.sortable.sorted .sort-icon {
+    opacity: 1;
+}
+.sortable.sorted.asc .sort-icon:before {
+    content: "\f148"; /* arrow-up */
+}
+.sortable.sorted.desc .sort-icon:before {
+    content: "\f149"; /* arrow-down */
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('recommendationTable');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    const headers = table.querySelectorAll('th.sortable');
+    
+    let currentSort = { column: null, direction: 'asc' };
+    
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortType = this.dataset.sort;
+            const isCurrentColumn = currentSort.column === sortType;
+            const newDirection = isCurrentColumn && currentSort.direction === 'asc' ? 'desc' : 'asc';
+            
+            // Remove previous sort indicators
+            headers.forEach(h => h.classList.remove('sorted', 'asc', 'desc'));
+            
+            // Add sort indicators to current header
+            this.classList.add('sorted', newDirection);
+            
+            // Sort the table
+            sortTable(sortType, newDirection);
+            
+            // Update current sort state
+            currentSort = { column: sortType, direction: newDirection };
+        });
+    });
+    
+    function sortTable(column, direction) {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const dataRows = rows.filter(row => row.dataset.item); // Filter out detail rows
+        
+        // Separate data rows and their corresponding detail rows
+        const rowPairs = dataRows.map(dataRow => {
+            const nextRow = dataRow.nextElementSibling;
+            return {
+                dataRow: dataRow,
+                detailRow: nextRow && nextRow.querySelector('.collapse') ? nextRow : null
+            };
+        });
+        
+        // Sort based on column and direction
+        rowPairs.sort((a, b) => {
+            let aVal, bVal;
+            
+            switch(column) {
+                case 'item':
+                    aVal = a.dataRow.dataset.item.toLowerCase();
+                    bVal = b.dataRow.dataset.item.toLowerCase();
+                    return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                    
+                case 'quantity':
+                    aVal = parseFloat(a.dataRow.dataset.quantity);
+                    bVal = parseFloat(b.dataRow.dataset.quantity);
+                    break;
+                    
+                case 'urgency':
+                    aVal = parseInt(a.dataRow.dataset.urgency);
+                    bVal = parseInt(b.dataRow.dataset.urgency);
+                    break;
+                    
+                case 'days':
+                    aVal = parseFloat(a.dataRow.dataset.days);
+                    bVal = parseFloat(b.dataRow.dataset.days);
+                    break;
+                    
+                case 'stock':
+                    aVal = parseFloat(a.dataRow.dataset.stock);
+                    bVal = parseFloat(b.dataRow.dataset.stock);
+                    break;
+                    
+                case 'usage':
+                    aVal = parseFloat(a.dataRow.dataset.usage);
+                    bVal = parseFloat(b.dataRow.dataset.usage);
+                    break;
+                    
+                default:
+                    return 0;
+            }
+            
+            if (direction === 'asc') {
+                return aVal - bVal;
+            } else {
+                return bVal - aVal;
+            }
+        });
+        
+        // Clear tbody and append sorted rows
+        tbody.innerHTML = '';
+        rowPairs.forEach(pair => {
+            tbody.appendChild(pair.dataRow);
+            if (pair.detailRow) {
+                tbody.appendChild(pair.detailRow);
+            }
+        });
+    }
+    
+    // Initial sort by urgency (most critical first)
+    const urgencyHeader = document.querySelector('[data-sort="urgency"]');
+    if (urgencyHeader) {
+        urgencyHeader.click();
+    }
+});
+</script>
