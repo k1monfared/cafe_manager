@@ -87,12 +87,6 @@ class TestWebApp(unittest.TestCase):
         # Should show some status numbers
         self.assertIn(b'Total Items', response.data)
     
-    def test_stock_entry_page(self):
-        """Test stock entry page loads"""
-        response = self.client.get('/stock_entry')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Add Stock Entry', response.data)
-        self.assertIn(b'Test Milk', response.data)  # Should show available items
     
     def test_analytics_page(self):
         """Test analytics page loads with data"""
@@ -107,22 +101,6 @@ class TestWebApp(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Upload CSV', response.data)
     
-    def test_add_stock_api(self):
-        """Test adding stock entry via API"""
-        stock_data = {
-            'date': '2025-08-23',
-            'item_name': 'Test Milk',
-            'current_stock': 15.5
-        }
-        
-        response = self.client.post('/api/add_stock',
-                                  data=json.dumps(stock_data),
-                                  content_type='application/json')
-        
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue(data['success'])
-        self.assertIn('Added stock entry', data['message'])
     
     def test_add_delivery_api(self):
         """Test adding delivery entry via API"""
@@ -142,22 +120,6 @@ class TestWebApp(unittest.TestCase):
         self.assertTrue(data['success'])
         self.assertIn('Added delivery entry', data['message'])
     
-    def test_add_stock_validation(self):
-        """Test stock entry validation"""
-        # Missing required fields
-        stock_data = {
-            'date': '2025-08-23'
-            # Missing item_name and current_stock
-        }
-        
-        response = self.client.post('/api/add_stock',
-                                  data=json.dumps(stock_data),
-                                  content_type='application/json')
-        
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertFalse(data['success'])
-        self.assertIn('required', data['error'])
     
     def test_recalculate_api(self):
         """Test manual recalculation API"""
@@ -185,17 +147,10 @@ class TestWebApp(unittest.TestCase):
     
     def test_error_handling(self):
         """Test error handling for invalid requests"""
-        # Test invalid JSON
-        response = self.client.post('/api/add_stock',
+        # Test invalid JSON for delivery API
+        response = self.client.post('/api/add_delivery',
                                   data='invalid json',
                                   content_type='application/json')
-        
-        data = json.loads(response.data)
-        self.assertFalse(data['success'])
-        
-        # Test missing content type
-        response = self.client.post('/api/add_stock',
-                                  data='{}')
         
         data = json.loads(response.data)
         self.assertFalse(data['success'])
@@ -225,18 +180,7 @@ class TestWebApp(unittest.TestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         
-        # 2. Add a stock entry
-        stock_data = {
-            'date': '2025-08-24',
-            'item_name': 'Test Milk',
-            'current_stock': 5.0
-        }
-        response = self.client.post('/api/add_stock',
-                                  data=json.dumps(stock_data),
-                                  content_type='application/json')
-        self.assertEqual(response.status_code, 200)
-        
-        # 3. Add a delivery
+        # 2. Add a delivery
         delivery_data = {
             'date': '2025-08-24',
             'item_name': 'Test Milk',

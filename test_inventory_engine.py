@@ -146,20 +146,6 @@ class TestInventoryEngine(unittest.TestCase):
         self.assertIn('recommendations_count', status)
         self.assertGreaterEqual(status['total_items'], 0)
     
-    def test_add_stock_entry(self):
-        """Test adding new stock entry"""
-        initial_count = len(self.engine.load_stock_data())
-        
-        success = self.engine.add_stock_entry('2025-08-24', 'Test Item', 12.5)
-        
-        self.assertTrue(success)
-        updated_stock_df = self.engine.load_stock_data()
-        self.assertEqual(len(updated_stock_df), initial_count + 1)
-        
-        # Check the new entry
-        new_entry = updated_stock_df[updated_stock_df['Date'].dt.strftime('%Y-%m-%d') == '2025-08-24']
-        self.assertEqual(len(new_entry), 1)
-        self.assertEqual(new_entry.iloc[0]['Current_Stock'], 12.5)
     
     def test_add_delivery_entry(self):
         """Test adding new delivery entry"""
@@ -176,19 +162,6 @@ class TestInventoryEngine(unittest.TestCase):
         self.assertEqual(len(new_entry), 1)
         self.assertEqual(new_entry.iloc[0]['Delivery_Amount'], 8.0)
         self.assertEqual(new_entry.iloc[0]['Notes'], 'Test delivery')
-    
-    def test_duplicate_stock_entry_replacement(self):
-        """Test that duplicate stock entries replace existing ones"""
-        # Add an entry for a date that already exists
-        success = self.engine.add_stock_entry('2025-08-21', 'Test Item', 99.9)
-        
-        self.assertTrue(success)
-        stock_df = self.engine.load_stock_data()
-        
-        # Should still have same number of entries (replacement, not addition)
-        date_entries = stock_df[stock_df['Date'].dt.strftime('%Y-%m-%d') == '2025-08-21']
-        self.assertEqual(len(date_entries), 1)
-        self.assertEqual(date_entries.iloc[0]['Current_Stock'], 99.9)
     
     def test_empty_data_files(self):
         """Test handling of empty data files"""

@@ -3,12 +3,14 @@
 Simplified Inventory Management Web Application
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 import pandas as pd
 from datetime import datetime, timedelta
 from inventory_engine import InventoryEngine
 import json
 import os
+import webbrowser
+import threading
 
 app = Flask(__name__)
 app.secret_key = 'simple-inventory-2025'
@@ -84,41 +86,7 @@ def dashboard():
                              current_stocks=[],
                              recommendations=[])
 
-@app.route('/stock_entry')
-def stock_entry():
-    """Stock entry form"""
-    try:
-        current_engine = app.config.get('engine', engine)
-        item_info_df = current_engine.load_item_info()
-        items = item_info_df['Item_Name'].tolist() if not item_info_df.empty else []
-        
-        return render_template('stock_entry.html', items=items)
-    except Exception as e:
-        flash(f'Error loading stock entry: {str(e)}', 'error')
-        return render_template('stock_entry.html', items=[])
 
-@app.route('/api/add_stock', methods=['POST'])
-def add_stock():
-    """Add stock entry via API"""
-    try:
-        data = request.json
-        date = data.get('date')
-        item_name = data.get('item_name')
-        current_stock = float(data.get('current_stock', 0))
-        
-        if not date or not item_name:
-            return jsonify({'success': False, 'error': 'Date and item name are required'})
-        
-        current_engine = app.config.get('engine', engine)
-        success = current_engine.add_stock_entry(date, item_name, current_stock)
-        
-        if success:
-            return jsonify({'success': True, 'message': f'Added stock entry for {item_name}'})
-        else:
-            return jsonify({'success': False, 'error': 'Failed to add stock entry'})
-    
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/add_delivery', methods=['POST'])
 def add_delivery():
@@ -151,12 +119,18 @@ def analytics():
         # Use test engine if in testing mode
         current_engine = app.config.get('engine', engine)
         
+        # Load stock and delivery data for enhanced charts
+        stock_df = current_engine.load_stock_data()
+        delivery_df = current_engine.load_delivery_data()
+        
         # Load forecast results
         forecast_data = []
         try:
             forecast_df = pd.read_csv(current_engine.forecast_file)
             if not forecast_df.empty:
                 for _, row in forecast_df.iterrows():
+                    item_name = row['Item_Name']
+                    
                     # Parse chart data - handle NaN values and convert to string
                     chart_dates_raw = str(row['Chart_Dates']) if pd.notna(row['Chart_Dates']) else ''
                     chart_consumption_raw = str(row['Chart_Consumption']) if pd.notna(row['Chart_Consumption']) else ''
@@ -164,8 +138,59 @@ def analytics():
                     chart_dates = chart_dates_raw.split('|') if chart_dates_raw else []
                     chart_consumption = [float(x) for x in chart_consumption_raw.split('|')] if chart_consumption_raw else []
                     
+                    # Get stock levels for the same dates
+                    chart_stock_levels = []
+                    delivery_markers = []
+                    
+                    if not stock_df.empty and chart_dates:
+                        item_stock_data = stock_df[stock_df['Item_Name'] == item_name].copy()
+                        if not item_stock_data.empty:
+                            item_stock_data['Date'] = pd.to_datetime(item_stock_data['Date'])
+                            item_stock_data = item_stock_data.sort_values('Date')
+                            
+                            # Get stock levels for chart dates
+                            for date_str in chart_dates:
+                                date_match = item_stock_data[item_stock_data['Date'] == pd.to_datetime(date_str)]
+                                if not date_match.empty:
+                                    chart_stock_levels.append(float(date_match.iloc[0]['Current_Stock']))
+                                else:
+                                    chart_stock_levels.append(None)
+                    
+                    # Get delivery information for this item
+                    if not delivery_df.empty:
+                        # Apply item name mapping for deliveries
+                        item_mapping = {
+                            'House Blend Coffee': 'Coffee Beans',
+                            'Whole Milk': 'Milk',
+                            '12oz Paper Cups': 'Paper Cups',
+                            'Test Coffee': 'Coffee Beans',
+                            'Test Milk': 'Milk',
+                            'Vanilla Syrup': 'Sugar'
+                        }
+                        
+                        # Find deliveries for this item (with name mapping)
+                        item_deliveries = delivery_df[delivery_df['Item_Name'] == item_name].copy()
+                        for delivery_name, stock_name in item_mapping.items():
+                            if stock_name == item_name:
+                                mapped_deliveries = delivery_df[delivery_df['Item_Name'] == delivery_name].copy()
+                                item_deliveries = pd.concat([item_deliveries, mapped_deliveries], ignore_index=True)
+                        
+                        if not item_deliveries.empty:
+                            item_deliveries['Date'] = pd.to_datetime(item_deliveries['Date'])
+                            
+                            # Create delivery markers for chart dates
+                            for i, date_str in enumerate(chart_dates):
+                                date_deliveries = item_deliveries[item_deliveries['Date'] == pd.to_datetime(date_str)]
+                                if not date_deliveries.empty:
+                                    total_delivery = date_deliveries['Delivery_Amount'].sum()
+                                    delivery_markers.append({
+                                        'x': i,
+                                        'amount': float(total_delivery),
+                                        'date': date_str
+                                    })
+                    
                     forecast_data.append({
-                        'item_name': row['Item_Name'],
+                        'item_name': item_name,
                         'current_stock': row['Current_Stock'],
                         'unit': row['Unit'],
                         'min_threshold': row['Min_Threshold'],
@@ -176,7 +201,9 @@ def analytics():
                         'confidence': row['Confidence'],
                         'data_points': row['Data_Points_Used'],
                         'chart_dates': chart_dates,
-                        'chart_consumption': chart_consumption
+                        'chart_consumption': chart_consumption,
+                        'chart_stock_levels': chart_stock_levels,
+                        'delivery_markers': delivery_markers
                     })
         except FileNotFoundError:
             pass
@@ -202,84 +229,105 @@ def upload_page():
     """CSV upload page"""
     return render_template('upload.html')
 
-@app.route('/audit')
-def audit_page():
-    """Comprehensive audit page showing 14-day history, consumption rates, and forecasts"""
+
+@app.route('/audit_results')
+def audit_results_page():
+    """Data audit results page showing validation issues and recommendations"""
     try:
-        # Use test engine if in testing mode
         current_engine = app.config.get('engine', engine)
         
-        # Load all data
-        stock_df = current_engine.load_stock_data()
-        item_info_df = current_engine.load_item_info()
+        # Load audit results
+        audit_results = []
+        audit_summary = None
+        all_clear = False
+        issues_by_severity = {}
+        item_status = []
         
-        # Load consumption data (calculated by engine)
-        consumption_df = pd.DataFrame()
         try:
-            consumption_df = pd.read_csv(current_engine.consumption_file)
-        except FileNotFoundError:
-            pass
-        
-        audit_data = []
-        
-        if not stock_df.empty and not item_info_df.empty:
-            from datetime import datetime, timedelta
-            
-            for item_name in item_info_df['Item_Name']:
-                item_stock_data = stock_df[stock_df['Item_Name'] == item_name].copy()
-                item_consumption_data = consumption_df[consumption_df['Item_Name'] == item_name].copy() if not consumption_df.empty else pd.DataFrame()
-                item_info = item_info_df[item_info_df['Item_Name'] == item_name].iloc[0]
+            audit_df = pd.read_csv(current_engine.auditor.audit_results_file)
+            if not audit_df.empty:
+                audit_results = audit_df.to_dict('records')
                 
-                if not item_stock_data.empty:
-                    # Convert dates and sort
-                    item_stock_data['Date'] = pd.to_datetime(item_stock_data['Date'])
-                    item_stock_data = item_stock_data.sort_values('Date')
-                    
-                    # Get last 14 days or all available data
-                    recent_data = item_stock_data.tail(14)
-                    
-                    # Get consumption data for the same period
-                    consumption_values = []
-                    if not item_consumption_data.empty:
-                        item_consumption_data['Date'] = pd.to_datetime(item_consumption_data['Date'])
-                        consumption_values = item_consumption_data['Consumption'].tolist()[-13:]  # Last 13 days (14 stock points = 13 consumption days)
-                    
-                    # Calculate average consumption rate
-                    avg_consumption = sum(consumption_values) / len(consumption_values) if consumption_values else 0
-                    
-                    # Prepare chart data
-                    dates = [d.strftime('%Y-%m-%d') for d in recent_data['Date']]
-                    stock_levels = recent_data['Current_Stock'].tolist()
-                    
-                    audit_data.append({
-                        'item_name': item_name,
-                        'unit': item_info['Unit'],
-                        'current_stock': recent_data.iloc[-1]['Current_Stock'] if not recent_data.empty else 0,
-                        'min_threshold': item_info['Min_Threshold'],
-                        'max_capacity': item_info['Max_Capacity'],
-                        'avg_consumption': avg_consumption,
-                        'data_points': len(recent_data),
-                        'dates': dates,
-                        'stock_levels': stock_levels,
-                        'consumption_data': consumption_values,
-                        'date_range': f"{dates[0]} to {dates[-1]}" if dates else "No data"
-                    })
-        
-        # Load forecast data for comparison
-        forecast_data = []
-        try:
-            forecast_df = pd.read_csv(current_engine.forecast_file)
-            if not forecast_df.empty:
-                forecast_data = forecast_df.to_dict('records')
+                # Check if it's an "all clear" result
+                if len(audit_results) == 1 and audit_results[0]['Severity'] == 'Success':
+                    all_clear = True
+                    # Get list of items that were checked
+                    stock_df = current_engine.load_stock_data()
+                    if not stock_df.empty:
+                        item_status = stock_df['Item_Name'].unique().tolist()
+                else:
+                    # Group issues by severity
+                    for result in audit_results:
+                        severity = result['Severity']
+                        if severity not in issues_by_severity:
+                            issues_by_severity[severity] = []
+                        issues_by_severity[severity].append(result)
+                
+                # Create audit summary
+                total_issues = len(audit_results) if not all_clear else 0
+                last_run = audit_results[0]['Audit_Date'] if audit_results else 'Never'
+                
+                if all_clear:
+                    status = 'Success'
+                elif any(r['Severity'] == 'Critical' for r in audit_results):
+                    status = 'Critical'
+                elif any(r['Severity'] == 'High' for r in audit_results):
+                    status = 'Warning'
+                else:
+                    status = 'Info'
+                
+                audit_summary = {
+                    'last_run': last_run,
+                    'total_issues': total_issues,
+                    'items_checked': len(set(r['Item_Name'] for r in audit_results if r['Item_Name'])) or len(item_status),
+                    'status': status
+                }
+                
         except FileNotFoundError:
-            pass
+            all_clear = True  # No audit file means no audit has been run yet
+            audit_summary = {
+                'last_run': 'Never',
+                'total_issues': 0,
+                'items_checked': 0,
+                'status': 'Info'
+            }
         
-        return render_template('audit.html', 
-                             audit_data=audit_data,
-                             forecast_data=forecast_data)
+        # Generate recommendations based on issues
+        recommendations = []
+        if issues_by_severity:
+            if 'Critical' in issues_by_severity:
+                recommendations.append({
+                    'title': 'Address Critical Issues Immediately',
+                    'description': 'Critical issues can cause data corruption. Please review and fix negative values or validation errors.'
+                })
+            if 'High' in issues_by_severity:
+                recommendations.append({
+                    'title': 'Review Missing Data',
+                    'description': 'Some deliveries or stock records may be missing. Check your data entry processes.'
+                })
+            if 'Medium' in issues_by_severity:
+                recommendations.append({
+                    'title': 'Verify Calculations',
+                    'description': 'Some stock calculations don\'t match expected values. Review your consumption tracking.'
+                })
+        
+        return render_template('audit_results.html',
+                             audit_results=audit_results,
+                             audit_summary=audit_summary,
+                             all_clear=all_clear,
+                             issues_by_severity=issues_by_severity,
+                             item_status=item_status,
+                             recommendations=recommendations)
+                             
     except Exception as e:
-        flash(f'Error loading audit data: {str(e)}', 'error')
-        return render_template('audit.html', audit_data=[], forecast_data=[])
+        flash(f'Error loading audit results: {str(e)}', 'error')
+        return render_template('audit_results.html',
+                             audit_results=[],
+                             audit_summary=None,
+                             all_clear=True,
+                             issues_by_severity={},
+                             item_status=[],
+                             recommendations=[])
 
 @app.route('/api/upload_csv', methods=['POST'])
 def upload_csv():
@@ -385,5 +433,47 @@ def recalculate():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/run_audit', methods=['POST'])
+def run_audit():
+    """Manually trigger audit"""
+    try:
+        current_engine = app.config.get('engine', engine)
+        audit_report = current_engine.auditor.run_audit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Audit completed successfully'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/download/audit_csv')
+def download_audit_csv():
+    """Download audit results as CSV"""
+    try:
+        current_engine = app.config.get('engine', engine)
+        audit_file = current_engine.auditor.audit_results_file
+        
+        if os.path.exists(audit_file):
+            return send_file(audit_file, as_attachment=True, 
+                           download_name=f'audit_results_{datetime.now().strftime("%Y%m%d")}.csv')
+        else:
+            return jsonify({'error': 'Audit results file not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def open_browser():
+    """Open web browser after a short delay"""
+    threading.Timer(1.5, lambda: webbrowser.open('http://localhost:5000')).start()
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    print("🚀 Starting Cafe Manager...")
+    print("📊 Inventory Analytics System")
+    print("🔗 Opening web interface at http://localhost:5000")
+    
+    # Open browser automatically
+    open_browser()
+    
+    # Start Flask app
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)

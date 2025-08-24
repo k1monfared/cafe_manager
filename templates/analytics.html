@@ -36,9 +36,22 @@
         </div>
     </div>
     <div class="card-body">
-        <!-- Usage Chart -->
+        <!-- Enhanced Charts with Toggle -->
         {% if item.chart_dates and item.chart_consumption %}
-        <h6><i class="bi bi-bar-chart"></i> Daily Consumption (Last 14 Days)</h6>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6><i class="bi bi-bar-chart"></i> Data Visualization (Last 14 Days)</h6>
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="chartType{{ loop.index }}" id="consumption{{ loop.index }}" checked>
+                <label class="btn btn-outline-primary" for="consumption{{ loop.index }}">Consumption</label>
+                
+                <input type="radio" class="btn-check" name="chartType{{ loop.index }}" id="stock{{ loop.index }}">
+                <label class="btn btn-outline-primary" for="stock{{ loop.index }}">Stock Levels</label>
+                
+                <input type="radio" class="btn-check" name="chartType{{ loop.index }}" id="combined{{ loop.index }}">
+                <label class="btn btn-outline-primary" for="combined{{ loop.index }}">Combined</label>
+            </div>
+        </div>
+        
         <div class="chart-container">
             <canvas id="chart-{{ loop.index }}"></canvas>
         </div>
@@ -69,8 +82,7 @@
 {% else %}
 <div class="alert alert-info">
     <h5><i class="bi bi-info-circle"></i> No Forecast Data Available</h5>
-    <p>Add some daily stock entries to generate consumption analysis and forecasts.</p>
-    <a href="/stock_entry" class="btn btn-primary">Add Stock Entry</a>
+    <p>Upload consumption and delivery data to generate analysis and forecasts.</p>
 </div>
 {% endif %}
 
@@ -134,50 +146,165 @@
 
 {% block scripts %}
 <script>
-// Create charts for each item
+// Enhanced charts with toggle functionality
 {% if forecast_data %}
 {% for item in forecast_data %}
 {% if item.chart_dates and item.chart_consumption %}
-const ctx{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
-new Chart(ctx{{ loop.index }}, {
-    type: 'line',
-    data: {
+(function() {
+    const ctx{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
+    const chartData{{ loop.index }} = {
         labels: {{ item.chart_dates|safe }},
-        datasets: [{
-            label: 'Daily Consumption ({{ item.unit }})',
-            data: {{ item.chart_consumption|safe }},
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.1)',
-            tension: 0.1,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Consumption ({{ item.unit }})'
+        datasets: {
+            consumption: {
+                label: 'Daily Consumption ({{ item.unit }})',
+                data: {{ item.chart_consumption|safe }},
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1,
+                fill: true,
+                type: 'line'
+            },
+            stock: {
+                label: 'Stock Level ({{ item.unit }})',
+                data: {{ item.chart_stock_levels|safe }},
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.1,
+                fill: false,
+                type: 'line'
+            }
+        }
+    };
+    
+    const deliveryMarkers{{ loop.index }} = {{ item.delivery_markers|safe }};
+    
+    let chart{{ loop.index }} = new Chart(ctx{{ loop.index }}, {
+        type: 'line',
+        data: {
+            labels: chartData{{ loop.index }}.labels,
+            datasets: [chartData{{ loop.index }}.datasets.consumption]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount ({{ item.unit }})'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
                 }
             },
-            x: {
+            plugins: {
                 title: {
                     display: true,
-                    text: 'Date'
+                    text: '{{ item.item_name }} - Consumption Pattern'
+                },
+                annotation: {
+                    annotations: {}
                 }
             }
         },
-        plugins: {
-            title: {
-                display: true,
-                text: 'Average: {{ "%.1f"|format(item.avg_daily_consumption) }} {{ item.unit }}/day'
+        plugins: [{
+            id: 'deliveryMarkers',
+            afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                const chartArea = chart.chartArea;
+                
+                deliveryMarkers{{ loop.index }}.forEach(function(marker) {
+                    const x = chart.scales.x.getPixelForValue(marker.x);
+                    const yBottom = chartArea.bottom;
+                    const yTop = chartArea.top;
+                    
+                    // Draw vertical line
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x, yTop);
+                    ctx.lineTo(x, yBottom);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(255, 99, 132, 0.8)';
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    
+                    // Draw delivery amount label
+                    ctx.fillStyle = 'rgba(255, 99, 132, 0.9)';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('D: ' + marker.amount, x + 5, yTop + 15);
+                    ctx.restore();
+                });
             }
+        }]
+    });
+    
+    function updateChart{{ loop.index }}(type) {
+        let datasets = [];
+        let title = '{{ item.item_name }} - ';
+        
+        switch(type) {
+            case 'consumption':
+                datasets = [chartData{{ loop.index }}.datasets.consumption];
+                title += 'Consumption Pattern';
+                break;
+            case 'stock':
+                datasets = [chartData{{ loop.index }}.datasets.stock];
+                title += 'Stock Levels';
+                break;
+            case 'combined':
+                // Use dual y-axis for combined view
+                datasets = [
+                    {...chartData{{ loop.index }}.datasets.consumption, yAxisID: 'y'},
+                    {...chartData{{ loop.index }}.datasets.stock, yAxisID: 'y1'}
+                ];
+                title += 'Consumption vs Stock';
+                break;
         }
+        
+        chart{{ loop.index }}.data.datasets = datasets;
+        chart{{ loop.index }}.options.plugins.title.text = title;
+        
+        // Update scales for combined view
+        if (type === 'combined') {
+            chart{{ loop.index }}.options.scales.y1 = {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Stock Level ({{ item.unit }})'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                }
+            };
+            chart{{ loop.index }}.options.scales.y.title.text = 'Consumption ({{ item.unit }})';
+        } else {
+            delete chart{{ loop.index }}.options.scales.y1;
+            chart{{ loop.index }}.options.scales.y.title.text = 'Amount ({{ item.unit }})';
+        }
+        
+        chart{{ loop.index }}.update();
     }
-});
+    
+    // Add event listeners for toggle buttons
+    document.getElementById('consumption{{ loop.index }}').addEventListener('change', function() {
+        if (this.checked) updateChart{{ loop.index }}('consumption');
+    });
+    
+    document.getElementById('stock{{ loop.index }}').addEventListener('change', function() {
+        if (this.checked) updateChart{{ loop.index }}('stock');
+    });
+    
+    document.getElementById('combined{{ loop.index }}').addEventListener('change', function() {
+        if (this.checked) updateChart{{ loop.index }}('combined');
+    });
+})();
 {% endif %}
 {% endfor %}
 {% endif %}

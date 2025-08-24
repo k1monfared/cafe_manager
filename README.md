@@ -1,14 +1,15 @@
-# Cafe Manager - Simple CSV-Based Inventory System
+# Cafe Manager - CSV-Based Inventory Analytics System
 
-A simplified inventory management system that uses CSV files as the single source of truth for easy auditing and transparency.
+A comprehensive inventory management and analytics system that uses CSV files for data transparency, with built-in audit capabilities and interactive dashboards.
 
 ## Core Features
 
-- **CSV-First Architecture**: All data stored in auditable CSV files
-- **Automatic Consumption Calculation**: consumption = previous_stock + deliveries - current_stock  
-- **Simple Forecasting**: Average daily consumption and runout predictions
-- **Interactive Analytics**: Charts showing last 14 days of consumption patterns
-- **Explainable Recommendations**: Detailed reasoning for all purchase suggestions
+- **CSV-First Architecture**: All data stored in auditable CSV files with full transparency
+- **Data Integrity Auditing**: Comprehensive validation system to detect discrepancies and inconsistencies
+- **Interactive Analytics**: Toggle between consumption, stock levels, and combined views with delivery markers
+- **Automatic Consumption Calculation**: `consumption = previous_stock + deliveries - current_stock`
+- **Intelligent Forecasting**: 14-day rolling averages with runout predictions and confidence levels
+- **Explainable Recommendations**: Detailed reasoning for all purchase suggestions with urgency levels
 
 ## Quick Start
 
@@ -21,25 +22,49 @@ A simplified inventory management system that uses CSV files as the single sourc
    ```bash
    python simple_app.py
    ```
+   
+   The web interface will automatically open at http://localhost:5000
 
-3. Open browser to http://localhost:5000
+## How to Use the Application
+
+### 1. Dashboard (Main Page)
+- **Overview Cards**: View total items, items below threshold, critical items, and recommendation count
+- **Current Stock Levels**: Table showing all items with their current stock, thresholds, and status
+- **Purchase Recommendations**: Urgent recommendations with detailed explanations and urgency levels
+- **Quick Actions**: Navigate to analytics for deeper insights
+
+### 2. Analytics Page
+- **Interactive Charts**: Toggle between three views:
+  - **Consumption View**: Daily consumption patterns over 14 days
+  - **Stock View**: Current stock levels with threshold indicators  
+  - **Combined View**: Both consumption and stock on dual y-axis
+- **Delivery Markers**: Vertical dashed lines show when deliveries occurred
+- **Item Selection**: Filter charts by specific inventory items
+- **Forecast Data**: View predicted runout dates and consumption trends
+
+### 3. Data Validation Page
+- **Audit Results**: Comprehensive validation of data integrity
+- **Issue Categories**: 
+  - **Critical**: Mathematical inconsistencies requiring immediate attention
+  - **Warnings**: Potential data quality issues
+  - **Info**: General observations about the data
+- **Download Options**: Export audit results as CSV
+- **Manual Audit**: Trigger new validation runs
+
+### 4. CSV Upload Page
+- **File Upload**: Upload new stock levels, deliveries, or consumption data
+- **Automatic Processing**: Files are automatically validated and processed
+- **Real-time Updates**: Dashboard and analytics update immediately after upload
 
 ## Data Files
 
-- `data/daily_stock_levels.csv` - Daily stock counts (user input)
-- `data/deliveries.csv` - Delivery records (user input)  
-- `data/item_info.csv` - Item configuration (thresholds, capacity, etc.)
-- `data/daily_consumption.csv` - Calculated daily usage (auto-generated)
-- `data/forecast_results.csv` - Forecast data with chart data (auto-generated)
-- `data/recommendations.csv` - Purchase recommendations (auto-generated)
-
-## Usage
-
-1. **Dashboard**: View current stock levels and key metrics
-2. **Stock Entry**: Add daily stock counts
-3. **Delivery Entry**: Record deliveries  
-4. **Analytics**: View consumption charts and forecasts
-5. **Recommendations**: See purchase recommendations with detailed explanations
+- `data/daily_stock_levels.csv` - Daily stock counts (input via upload)
+- `data/deliveries.csv` - Delivery records (input via upload)
+- `data/daily_consumption.csv` - Calculated consumption (auto-generated)
+- `data/item_info.csv` - Item configuration (thresholds, lead times, etc.)
+- `data/forecast_results.csv` - Forecast data with chart information (auto-generated)
+- `data/recommendations.csv` - Purchase recommendations with detailed reasoning (auto-generated)
+- `data/audit_results.csv` - Data validation results (auto-generated)
 
 ## Testing
 

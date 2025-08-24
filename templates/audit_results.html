@@ -1,0 +1,306 @@
+{% extends "simple_base.html" %}
+
+{% block title %}Data Audit Results - Simple Inventory Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-shield-check"></i> Data Audit Results</h1>
+        <p class="text-muted">Comprehensive validation of inventory data consistency and accuracy</p>
+    </div>
+</div>
+
+<!-- Audit Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-clipboard-check"></i> Audit Summary</h5>
+    </div>
+    <div class="card-body">
+        {% if audit_summary %}
+        <div class="row text-center">
+            <div class="col-md-3">
+                <small class="text-muted">Last Audit Run</small><br>
+                <strong>{{ audit_summary.last_run }}</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Total Issues</small><br>
+                <strong class="text-{{ 'success' if audit_summary.total_issues == 0 else 'warning' if audit_summary.total_issues < 5 else 'danger' }}">
+                    {{ audit_summary.total_issues }}
+                </strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Items Checked</small><br>
+                <strong>{{ audit_summary.items_checked }}</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Overall Status</small><br>
+                <span class="badge bg-{{ 'success' if audit_summary.status == 'Success' else 'warning' if audit_summary.status == 'Warning' else 'danger' }}">
+                    {{ audit_summary.status }}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- All Clear Message -->
+{% if all_clear %}
+<div class="card border-success">
+    <div class="card-header bg-success text-white">
+        <h5><i class="bi bi-check-circle"></i> All Data Validation Passed!</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <h6>🎉 Excellent! Your inventory data is consistent and accurate.</h6>
+                <p class="mb-0">
+                    All stock calculations match expected values, no negative values detected, 
+                    and all deliveries are properly integrated with consumption data.
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+            </div>
+        </div>
+        
+        {% if item_status %}
+        <hr>
+        <h6>Items Validated:</h6>
+        <div class="row">
+            {% for item in item_status %}
+            <div class="col-md-4 mb-2">
+                <span class="badge bg-success me-2">✓</span>{{ item }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Issues Found -->
+{% if issues_by_severity %}
+{% for severity, issues in issues_by_severity.items() %}
+<div class="card mb-4 border-{{ 'danger' if severity == 'Critical' else 'warning' if severity == 'High' else 'info' if severity == 'Medium' else 'secondary' }}">
+    <div class="card-header bg-{{ 'danger' if severity == 'Critical' else 'warning' if severity == 'High' else 'info' if severity == 'Medium' else 'secondary' }} text-white">
+        <h5>
+            <i class="bi bi-{{ 'exclamation-triangle' if severity == 'Critical' else 'exclamation-circle' if severity == 'High' else 'info-circle' if severity == 'Medium' else 'check-circle' }}"></i>
+            {{ severity }} Issues ({{ issues|length }})
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if severity == 'Critical' %}
+        <div class="alert alert-danger">
+            <strong>⚠️ Critical issues require immediate attention!</strong> These problems can cause data corruption or incorrect calculations.
+        </div>
+        {% elif severity == 'High' %}
+        <div class="alert alert-warning">
+            <strong>⚡ High priority issues detected.</strong> These should be resolved to maintain data accuracy.
+        </div>
+        {% endif %}
+        
+        <!-- Issues by Item -->
+        {% set issues_by_item = issues | groupby('Item_Name') %}
+        {% for item_name, item_issues in issues_by_item %}
+        <div class="mb-4">
+            <h6><i class="bi bi-box"></i> {{ item_name }}</h6>
+            
+            <!-- Issues Table for this item -->
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Issue Type</th>
+                            <th>Description</th>
+                            <th>Expected</th>
+                            <th>Actual</th>
+                            <th>Difference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in item_issues %}
+                        <tr>
+                            <td>{{ issue.Date or '-' }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ issue.Issue_Type }}</span>
+                            </td>
+                            <td>{{ issue.Description }}</td>
+                            <td>{{ issue.Expected_Value or '-' }}</td>
+                            <td>{{ issue.Actual_Value or '-' }}</td>
+                            <td class="text-{{ 'danger' if issue.Difference and issue.Difference|float > 0 else 'success' }}">
+                                {{ issue.Difference or '-' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Chart for this item if there are calculation errors -->
+            {% set calculation_errors = item_issues | selectattr('Issue_Type', 'equalto', 'Calculation Errors') | list %}
+            {% if calculation_errors and item_chart_data and item_chart_data[item_name] %}
+            <h6><i class="bi bi-graph-up"></i> Expected vs Actual Values</h6>
+            <div class="chart-container">
+                <canvas id="audit-chart-{{ loop.index }}"></canvas>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Recommendations -->
+{% if recommendations %}
+<div class="card">
+    <div class="card-header">
+        <h5><i class="bi bi-lightbulb"></i> Recommendations</h5>
+    </div>
+    <div class="card-body">
+        {% for rec in recommendations %}
+        <div class="alert alert-info">
+            <h6>{{ rec.title }}</h6>
+            <p class="mb-0">{{ rec.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Actions Section -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-download"></i> Download Reports</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button id="downloadAuditBtn" class="btn btn-success">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Download Audit Results (CSV)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-tools"></i> Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button id="runAuditBtn" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Run Audit Now
+                    </button>
+                </div>
+                <small class="text-muted mt-2 d-block">
+                    Audit runs automatically after data changes
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Create audit charts if there are calculation error data
+{% if issues_by_severity and item_chart_data %}
+{% for item_name, chart_data in item_chart_data.items() %}
+{% if chart_data.expected and chart_data.actual %}
+const ctx{{ loop.index }} = document.getElementById('audit-chart-{{ loop.index }}');
+if (ctx{{ loop.index }}) {
+    new Chart(ctx{{ loop.index }}, {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.dates | safe }},
+            datasets: [{
+                label: 'Expected Stock',
+                data: {{ chart_data.expected | safe }},
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderWidth: 2
+            }, {
+                label: 'Actual Stock',
+                data: {{ chart_data.actual | safe }},
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Stock Level'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: '{{ item_name }} - Expected vs Actual Stock'
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+// Handle manual audit trigger
+document.getElementById('runAuditBtn').addEventListener('click', function() {
+    this.innerHTML = '<i class="bi bi-hourglass"></i> Running Audit...';
+    this.disabled = true;
+    
+    fetch('/api/run_audit', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Audit completed successfully!');
+                location.reload();
+            } else {
+                alert('❌ Audit failed: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('❌ Network error: ' + error);
+        })
+        .finally(() => {
+            this.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Run Audit Now';
+            this.disabled = false;
+        });
+});
+
+// Handle download audit CSV
+document.getElementById('downloadAuditBtn').addEventListener('click', function() {
+    const link = document.createElement('a');
+    link.href = '/api/download/audit_csv';
+    link.download = 'audit_results_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+
+</script>
+{% endblock %}

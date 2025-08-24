@@ -9,6 +9,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 import os
+from audit_inventory import InventoryAuditor
 
 class InventoryEngine:
     def __init__(self, data_dir: str = "data"):
@@ -19,6 +20,7 @@ class InventoryEngine:
         self.consumption_file = os.path.join(data_dir, "daily_consumption.csv")
         self.forecast_file = os.path.join(data_dir, "forecast_results.csv")
         self.recommendations_file = os.path.join(data_dir, "recommendations.csv")
+        self.auditor = InventoryAuditor(data_dir)
     
     def load_stock_data(self) -> pd.DataFrame:
         """Load daily stock levels"""
@@ -56,17 +58,41 @@ class InventoryEngine:
         if stock_df.empty:
             return pd.DataFrame(columns=['Date', 'Item_Name', 'Consumption', 'Stock_Before_Delivery', 'Delivery_Amount', 'Previous_Stock', 'Reasoning'])
         
+        # Create item name mapping from delivery names to stock names
+        item_mapping = {
+            'House Blend Coffee': 'Coffee Beans',
+            'Whole Milk': 'Milk',
+            '12oz Paper Cups': 'Paper Cups',
+            'Test Coffee': 'Coffee Beans',
+            'Test Milk': 'Milk',
+            'Vanilla Syrup': 'Sugar'  # Assuming syrup maps to sugar for simplification
+        }
+        
         consumption_records = []
         
         for item in stock_df['Item_Name'].unique():
             item_stocks = stock_df[stock_df['Item_Name'] == item].copy()
-            item_deliveries = delivery_df[delivery_df['Item_Name'] == item].copy()
             
-            # Create delivery lookup
+            # Get deliveries for this item (accounting for name mapping)
+            mapped_deliveries = []
+            for delivery_name, stock_name in item_mapping.items():
+                if stock_name == item:
+                    item_deliveries = delivery_df[delivery_df['Item_Name'] == delivery_name].copy()
+                    mapped_deliveries.append(item_deliveries)
+            
+            # Also check for exact name matches
+            exact_deliveries = delivery_df[delivery_df['Item_Name'] == item].copy()
+            if not exact_deliveries.empty:
+                mapped_deliveries.append(exact_deliveries)
+            
+            # Combine all deliveries for this item
+            all_deliveries = pd.concat(mapped_deliveries, ignore_index=True) if mapped_deliveries else pd.DataFrame()
+            
+            # Create delivery lookup (sum deliveries by date if multiple)
             delivery_lookup = {}
-            for _, delivery in item_deliveries.iterrows():
-                date_str = delivery['Date'].strftime('%Y-%m-%d')
-                delivery_lookup[date_str] = delivery['Delivery_Amount']
+            if not all_deliveries.empty:
+                delivery_by_date = all_deliveries.groupby(all_deliveries['Date'].dt.strftime('%Y-%m-%d'))['Delivery_Amount'].sum()
+                delivery_lookup = delivery_by_date.to_dict()
             
             # Calculate consumption for each day (except first day)
             for i in range(1, len(item_stocks)):
@@ -85,8 +111,27 @@ class InventoryEngine:
                 # consumption = previous_stock + deliveries - current_stock
                 consumption = previous_stock + delivery_amount - current_stock
                 
-                # Stock before delivery (for explanation)
+                # If consumption would be negative, it likely means there was a delivery
+                # that increased stock beyond what was expected. In this case:
+                # - If there's a recorded delivery, consumption should be 0 (no consumption, just delivery)
+                # - If no recorded delivery, something is wrong with the data
+                if consumption < 0:
+                    if delivery_amount > 0:
+                        # There was a delivery, consumption should be 0
+                        consumption = 0
+                    else:
+                        # No delivery recorded but stock increased - this indicates missing delivery data
+                        # Calculate what the delivery should have been
+                        missing_delivery = current_stock - previous_stock
+                        delivery_amount = missing_delivery
+                        consumption = 0
+                
+                # Calculate stock before delivery
                 stock_before_delivery = current_stock - delivery_amount
+                
+                # Ensure stock_before_delivery is not negative
+                if stock_before_delivery < 0:
+                    stock_before_delivery = 0
                 
                 # Create reasoning
                 if delivery_amount > 0:
@@ -97,10 +142,10 @@ class InventoryEngine:
                 consumption_records.append({
                     'Date': current_date,
                     'Item_Name': item,
-                    'Consumption': max(0, consumption),  # Don't allow negative consumption
-                    'Stock_Before_Delivery': stock_before_delivery,
-                    'Delivery_Amount': delivery_amount,
-                    'Previous_Stock': previous_stock,
+                    'Consumption': round(consumption, 1),
+                    'Stock_Before_Delivery': round(stock_before_delivery, 1),
+                    'Delivery_Amount': round(delivery_amount, 1),
+                    'Previous_Stock': round(previous_stock, 1),
                     'Reasoning': reasoning
                 })
         
@@ -110,6 +155,13 @@ class InventoryEngine:
         if not consumption_df.empty:
             consumption_df.to_csv(self.consumption_file, index=False)
             print(f"✅ Saved {len(consumption_df)} consumption records to {self.consumption_file}")
+        
+        # Run audit after consumption calculation
+        try:
+            audit_report = self.auditor.run_audit()
+            print(f"✅ Audit completed and saved to {self.auditor.audit_results_file}")
+        except Exception as e:
+            print(f"⚠️  Audit failed: {str(e)}")
         
         return consumption_df
     
@@ -334,38 +386,6 @@ Reason: {urgency_reason}
             'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
     
-    def add_stock_entry(self, date: str, item_name: str, current_stock: float) -> bool:
-        """Add a new stock entry"""
-        try:
-            stock_df = self.load_stock_data()
-            
-            # Create new entry
-            new_entry = pd.DataFrame({
-                'Date': [pd.to_datetime(date)],
-                'Item_Name': [item_name],
-                'Current_Stock': [current_stock]
-            })
-            
-            # Remove existing entry for same date/item if exists
-            stock_df = stock_df[~((stock_df['Date'] == pd.to_datetime(date)) & 
-                                (stock_df['Item_Name'] == item_name))]
-            
-            # Add new entry
-            stock_df = pd.concat([stock_df, new_entry], ignore_index=True)
-            stock_df = stock_df.sort_values(['Item_Name', 'Date'])
-            
-            # Save
-            stock_df.to_csv(self.stock_file, index=False)
-            
-            # Recalculate everything
-            self.calculate_daily_consumption()
-            self.calculate_forecast()
-            self.generate_recommendations()
-            
-            return True
-        except Exception as e:
-            print(f"Error adding stock entry: {e}")
-            return False
     
     def add_delivery_entry(self, date: str, item_name: str, delivery_amount: float, notes: str = "") -> bool:
         """Add a new delivery entry"""
