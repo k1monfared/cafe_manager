@@ -351,13 +351,18 @@ def upload_csv():
         with open(file_path, 'w') as f:
             f.write(content)
         
-        # Recalculate everything if it's stock or delivery data
-        if file_type in ['stock_levels', 'deliveries']:
-            current_engine.calculate_daily_consumption()
-            current_engine.calculate_forecast()
-            current_engine.generate_recommendations()
-        
-        flash(f'Successfully uploaded {file_type.replace("_", " ")} data and recalculated forecasts!', 'success')
+        # Recalculate everything if it's data that affects analytics
+        if file_type in ['stock_levels', 'deliveries', 'item_info']:
+            # Run all analytics calculations
+            consumption_df = current_engine.calculate_daily_consumption()
+            forecast_df = current_engine.calculate_forecast()
+            recommendations_df = current_engine.generate_recommendations()
+            
+            # Provide detailed feedback on what was updated
+            flash(f'✅ Successfully uploaded {file_type.replace("_", " ")} data!', 'success')
+            flash(f'📊 Auto-updated analytics: {len(consumption_df)} consumption records, {len(forecast_df)} forecasts, {len(recommendations_df)} recommendations', 'success')
+        else:
+            flash(f'✅ Successfully uploaded {file_type.replace("_", " ")} data!', 'success')
         return redirect('/upload')
         
     except Exception as e:
