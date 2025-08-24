@@ -72,6 +72,11 @@
                     <li><strong>Current Stock:</strong> {{ "%.1f"|format(item.current_stock) }} {{ item.unit }}</li>
                     <li><strong>Minimum Threshold:</strong> {{ "%.1f"|format(item.min_threshold) }} {{ item.unit }}</li>
                     <li><strong>Maximum Capacity:</strong> {{ "%.1f"|format(item.max_capacity) }} {{ item.unit }}</li>
+                    {% for rec in recommendations %}
+                        {% if rec.Item_Name == item.item_name %}
+                            <li><strong>Target Stock Level:</strong> {{ "%.1f"|format(rec.Target_Stock_Level) }} {{ item.unit }}</li>
+                        {% endif %}
+                    {% endfor %}
                 </ul>
             </div>
             <div class="col-md-4">
@@ -90,13 +95,13 @@
                         {% if rec.Item_Name == item.item_name %}
                             <li><strong>Recommended Order:</strong> {{ "%.1f"|format(rec.Recommended_Quantity) }} {{ item.unit }}</li>
                             <li><strong>Lead Time:</strong> {{ rec.Lead_Time_Days }} days</li>
-                            <li><strong>Target Stock Level:</strong> {{ "%.1f"|format(rec.Target_Stock_Level) }} {{ item.unit }}</li>
+                            <li><strong>Stock Status:</strong> {{ rec.Urgency }}</li>
                             {% set found_rec = true %}
                         {% endif %}
                     {% endfor %}
                     {% if not found_rec %}
                         <li><strong>Order Status:</strong> No order needed</li>
-                        <li><strong>Lead Time:</strong> {{ item.lead_time_days }} days</li>
+                        <li><strong>Lead Time:</strong> {{ item.Lead_Time_Days }} days</li>
                         <li><strong>Stock Status:</strong> Sufficient</li>
                     {% endif %}
                 </ul>
