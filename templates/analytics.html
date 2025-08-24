@@ -173,8 +173,10 @@
             },
             plugins: {
                 title: {
-                    display: true,
-                    text: '{{ item.item_name }} - Consumption Pattern'
+                    display: false
+                },
+                legend: {
+                    display: false
                 },
                 annotation: {
                     annotations: {}
@@ -214,16 +216,13 @@
     
     function updateChart{{ loop.index }}(type) {
         let datasets = [];
-        let title = '{{ item.item_name }} - ';
         
         switch(type) {
             case 'consumption':
                 datasets = [chartData{{ loop.index }}.datasets.consumption];
-                title += 'Consumption Pattern';
                 break;
             case 'stock':
                 datasets = [chartData{{ loop.index }}.datasets.stock];
-                title += 'Stock Levels';
                 break;
             case 'combined':
                 // Use dual y-axis for combined view
@@ -231,12 +230,10 @@
                     {...chartData{{ loop.index }}.datasets.consumption, yAxisID: 'y'},
                     {...chartData{{ loop.index }}.datasets.stock, yAxisID: 'y1'}
                 ];
-                title += 'Consumption vs Stock';
                 break;
         }
         
         chart{{ loop.index }}.data.datasets = datasets;
-        chart{{ loop.index }}.options.plugins.title.text = title;
         
         // Update scales for combined view
         if (type === 'combined') {
