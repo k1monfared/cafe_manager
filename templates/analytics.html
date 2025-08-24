@@ -21,7 +21,6 @@
                 {% for rec in recommendations %}
                     {% if rec.Item_Name == item.item_name %}
                         <span class="badge ms-2 bg-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' if rec.Urgency == 'MEDIUM' else 'secondary' if rec.Urgency == 'LOW' else 'success' }}">{{ rec.Urgency }}</span>
-                        {% break %}
                     {% endif %}
                 {% endfor %}
             </div>
@@ -86,18 +85,20 @@
             <div class="col-md-4">
                 <h6 class="text-muted">Ordering Information</h6>
                 <ul class="list-unstyled">
+                    {% set found_rec = false %}
                     {% for rec in recommendations %}
                         {% if rec.Item_Name == item.item_name %}
                             <li><strong>Recommended Order:</strong> {{ "%.1f"|format(rec.Recommended_Quantity) }} {{ item.unit }}</li>
                             <li><strong>Lead Time:</strong> {{ rec.Lead_Time_Days }} days</li>
                             <li><strong>Target Stock Level:</strong> {{ "%.1f"|format(rec.Target_Stock_Level) }} {{ item.unit }}</li>
-                            {% break %}
+                            {% set found_rec = true %}
                         {% endif %}
-                    {% else %}
+                    {% endfor %}
+                    {% if not found_rec %}
                         <li><strong>Order Status:</strong> No order needed</li>
                         <li><strong>Lead Time:</strong> {{ item.lead_time_days }} days</li>
                         <li><strong>Stock Status:</strong> Sufficient</li>
-                    {% endfor %}
+                    {% endif %}
                 </ul>
             </div>
         </div>
