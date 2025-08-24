@@ -148,9 +148,12 @@ def analytics():
             forecast_df = pd.read_csv(engine.forecast_file)
             if not forecast_df.empty:
                 for _, row in forecast_df.iterrows():
-                    # Parse chart data
-                    chart_dates = row['Chart_Dates'].split('|') if row['Chart_Dates'] else []
-                    chart_consumption = [float(x) for x in row['Chart_Consumption'].split('|')] if row['Chart_Consumption'] else []
+                    # Parse chart data - handle NaN values
+                    chart_dates_raw = row['Chart_Dates'] if pd.notna(row['Chart_Dates']) else ''
+                    chart_consumption_raw = row['Chart_Consumption'] if pd.notna(row['Chart_Consumption']) else ''
+                    
+                    chart_dates = chart_dates_raw.split('|') if chart_dates_raw else []
+                    chart_consumption = [float(x) for x in chart_consumption_raw.split('|')] if chart_consumption_raw else []
                     
                     forecast_data.append({
                         'item_name': row['Item_Name'],
