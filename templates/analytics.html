@@ -93,48 +93,7 @@
         <h5><i class="bi bi-cart-plus"></i> Purchase Recommendations</h5>
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th><i class="bi bi-box"></i> Item</th>
-                        <th><i class="bi bi-cart-plus"></i> Order Quantity</th>
-                        <th><i class="bi bi-exclamation-triangle"></i> Urgency</th>
-                        <th><i class="bi bi-clock"></i> Days Remaining</th>
-                        <th><i class="bi bi-graph-down"></i> Current Stock</th>
-                        <th><i class="bi bi-info-circle"></i> Reason</th>
-                        <th><i class="bi bi-list-ul"></i> Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rec in recommendations %}
-                    <tr class="table-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' }}">
-                        <td><strong>{{ rec.Item_Name }}</strong></td>
-                        <td><strong>{{ "%.1f"|format(rec.Recommended_Quantity) }} {{ rec.Unit }}</strong></td>
-                        <td><span class="badge bg-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'secondary' }}">{{ rec.Urgency }}</span></td>
-                        <td>{{ "%.1f"|format(rec.Days_Remaining) }} days</td>
-                        <td>{{ "%.1f"|format(rec.Current_Stock) }} {{ rec.Unit }}</td>
-                        <td><small>{{ rec.Urgency_Reason }}</small></td>
-                        <td>
-                            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}" aria-expanded="false">
-                                <i class="bi bi-info-circle"></i> Details
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="7" class="p-0">
-                            <div class="collapse" id="details-{{ loop.index }}">
-                                <div class="card card-body m-2">
-                                    <small class="text-muted mb-2">Generated: {{ rec.Generated_Date }}</small>
-                                    <pre class="bg-light p-3 rounded small">{{ rec.Detailed_Explanation }}</pre>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {% include 'recommendation_table.html' %}
     </div>
 </div>
 {% else %}
