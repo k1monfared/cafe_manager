@@ -20,12 +20,15 @@ engine = InventoryEngine()
 def dashboard():
     """Main dashboard showing current status and alerts"""
     try:
+        # Use test engine if in testing mode
+        current_engine = app.config.get('engine', engine)
+        
         # Get current status
-        status = engine.get_current_status()
+        status = current_engine.get_current_status()
         
         # Load current stock levels
-        stock_df = engine.load_stock_data()
-        item_info_df = engine.load_item_info()
+        stock_df = current_engine.load_stock_data()
+        item_info_df = current_engine.load_item_info()
         
         current_stocks = []
         if not stock_df.empty and not item_info_df.empty:
@@ -64,7 +67,7 @@ def dashboard():
         # Load recommendations
         recommendations = []
         try:
-            recommendations_df = pd.read_csv(engine.recommendations_file)
+            recommendations_df = pd.read_csv(current_engine.recommendations_file)
             if not recommendations_df.empty:
                 recommendations = recommendations_df.to_dict('records')
         except FileNotFoundError:
@@ -85,7 +88,8 @@ def dashboard():
 def stock_entry():
     """Stock entry form"""
     try:
-        item_info_df = engine.load_item_info()
+        current_engine = app.config.get('engine', engine)
+        item_info_df = current_engine.load_item_info()
         items = item_info_df['Item_Name'].tolist() if not item_info_df.empty else []
         
         return render_template('stock_entry.html', items=items)
@@ -105,7 +109,8 @@ def add_stock():
         if not date or not item_name:
             return jsonify({'success': False, 'error': 'Date and item name are required'})
         
-        success = engine.add_stock_entry(date, item_name, current_stock)
+        current_engine = app.config.get('engine', engine)
+        success = current_engine.add_stock_entry(date, item_name, current_stock)
         
         if success:
             return jsonify({'success': True, 'message': f'Added stock entry for {item_name}'})
@@ -128,7 +133,8 @@ def add_delivery():
         if not date or not item_name:
             return jsonify({'success': False, 'error': 'Date and item name are required'})
         
-        success = engine.add_delivery_entry(date, item_name, delivery_amount, notes)
+        current_engine = app.config.get('engine', engine)
+        success = current_engine.add_delivery_entry(date, item_name, delivery_amount, notes)
         
         if success:
             return jsonify({'success': True, 'message': f'Added delivery entry for {item_name}'})
@@ -142,10 +148,13 @@ def add_delivery():
 def analytics():
     """Analytics page with detailed explanations"""
     try:
+        # Use test engine if in testing mode
+        current_engine = app.config.get('engine', engine)
+        
         # Load forecast results
         forecast_data = []
         try:
-            forecast_df = pd.read_csv(engine.forecast_file)
+            forecast_df = pd.read_csv(current_engine.forecast_file)
             if not forecast_df.empty:
                 for _, row in forecast_df.iterrows():
                     # Parse chart data - handle NaN values
@@ -175,7 +184,7 @@ def analytics():
         # Load recommendations
         recommendations_data = []
         try:
-            recommendations_df = pd.read_csv(engine.recommendations_file)
+            recommendations_df = pd.read_csv(current_engine.recommendations_file)
             if not recommendations_df.empty:
                 recommendations_data = recommendations_df.to_dict('records')
         except FileNotFoundError:
@@ -214,11 +223,12 @@ def upload_csv():
         
         # Save to appropriate file
         if file_type == 'stock_levels':
-            file_path = engine.stock_file
+            current_engine = app.config.get('engine', engine)
+            file_path = current_engine.stock_file
         elif file_type == 'deliveries':
-            file_path = engine.delivery_file
+            file_path = current_engine.delivery_file
         elif file_type == 'item_info':
-            file_path = engine.item_info_file
+            file_path = current_engine.item_info_file
         else:
             return jsonify({'success': False, 'error': 'Invalid file type'})
         
@@ -227,9 +237,9 @@ def upload_csv():
         
         # Recalculate everything if it's stock or delivery data
         if file_type in ['stock_levels', 'deliveries']:
-            engine.calculate_daily_consumption()
-            engine.calculate_forecast()
-            engine.generate_recommendations()
+            current_engine.calculate_daily_consumption()
+            current_engine.calculate_forecast()
+            current_engine.generate_recommendations()
         
         return jsonify({'success': True, 'message': f'Successfully uploaded {file_type} data'})
         
@@ -240,9 +250,10 @@ def upload_csv():
 def recalculate():
     """Manually trigger recalculation"""
     try:
-        engine.calculate_daily_consumption()
-        forecast_df = engine.calculate_forecast()
-        recommendations_df = engine.generate_recommendations()
+        current_engine = app.config.get('engine', engine)
+        current_engine.calculate_daily_consumption()
+        forecast_df = current_engine.calculate_forecast()
+        recommendations_df = current_engine.generate_recommendations()
         
         return jsonify({
             'success': True,
