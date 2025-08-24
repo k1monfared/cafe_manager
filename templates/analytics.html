@@ -14,9 +14,12 @@
 <!-- Forecasts with Charts -->
 {% for item in forecast_data %}
 <div class="card mb-4">
-    <div class="card-header">
-        <h5><i class="bi bi-box"></i> {{ item.item_name }}</h5>
-        <div class="row text-center">
+    <div class="card-header item-toggle-header" data-item="{{ item.item_name|replace(' ', '_') }}" style="cursor: pointer;">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5><i class="bi bi-box"></i> {{ item.item_name }}</h5>
+            <i class="bi bi-chevron-down toggle-icon"></i>
+        </div>
+        <div class="row text-center mt-2">
             <div class="col-md-3">
                 <small class="text-muted">Current Stock</small><br>
                 <strong>{{ "%.1f"|format(item.current_stock) }} {{ item.unit }}</strong>
@@ -35,7 +38,7 @@
             </div>
         </div>
     </div>
-    <div class="card-body">
+    <div class="card-body item-content" id="content-{{ item.item_name|replace(' ', '_') }}" style="display: none;">
         <!-- Enhanced Charts with Toggle -->
         {% if item.chart_dates and item.chart_consumption %}
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -279,6 +282,48 @@
 {% endif %}
 {% endfor %}
 {% endif %}
+
+// Toggle functionality for forecast items
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleHeaders = document.querySelectorAll('.item-toggle-header');
+    
+    toggleHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const itemId = this.dataset.item;
+            const content = document.getElementById('content-' + itemId);
+            const toggleIcon = this.querySelector('.toggle-icon');
+            
+            if (content.style.display === 'none' || content.style.display === '') {
+                // Show content
+                content.style.display = 'block';
+                toggleIcon.classList.remove('bi-chevron-down');
+                toggleIcon.classList.add('bi-chevron-up');
+                this.style.backgroundColor = '#f8f9fa';
+            } else {
+                // Hide content
+                content.style.display = 'none';
+                toggleIcon.classList.remove('bi-chevron-up');
+                toggleIcon.classList.add('bi-chevron-down');
+                this.style.backgroundColor = '';
+            }
+        });
+        
+        // Add hover effect
+        header.addEventListener('mouseenter', function() {
+            if (this.style.backgroundColor === '') {
+                this.style.backgroundColor = '#f8f9fa';
+            }
+        });
+        
+        header.addEventListener('mouseleave', function() {
+            const itemId = this.dataset.item;
+            const content = document.getElementById('content-' + itemId);
+            if (content.style.display === 'none' || content.style.display === '') {
+                this.style.backgroundColor = '';
+            }
+        });
+    });
+});
 
 // Handle recalculate button
 document.getElementById('recalculateBtn').addEventListener('click', function() {
