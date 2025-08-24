@@ -1,0 +1,17 @@
+🏪 CAFE MANAGER - QUICK START GUIDE
+=====================================
+
+For Windows Users (Non-Technical):
+1. Double-click: setup_windows.bat
+2. Double-click: run_cafe_manager.bat
+3. Your web browser will open automatically!
+
+For Detailed Instructions:
+📄 Open: WINDOWS_SETUP.md
+
+Support:
+- Check README.md for full documentation
+- All data is stored in the 'data' folder as CSV files
+- The web interface runs at: http://localhost:5000
+
+🚀 That's it! No programming knowledge required.

@@ -13,6 +13,15 @@ A comprehensive inventory management and analytics system that uses CSV files fo
 
 ## Quick Start
 
+### For Windows Users (No Programming Required)
+**👉 See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed Windows setup guide**
+
+1. Download this project as ZIP from GitHub
+2. Extract and double-click: `setup_windows.bat` 
+3. Double-click: `run_cafe_manager.bat`
+4. Web browser opens automatically at http://localhost:5000
+
+### For Developers/Linux/Mac
 1. Install dependencies:
    ```bash
    pip install -r requirements.txt
