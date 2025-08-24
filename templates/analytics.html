@@ -90,17 +90,12 @@
             <div class="col-md-4">
                 <h6 class="text-muted">Ordering Information</h6>
                 <ul class="list-unstyled">
-                    {% set found_rec = false %}
                     {% for rec in recommendations %}
                         {% if rec.Item_Name == item.item_name %}
                             <li><strong>Recommended Order:</strong> {{ "%.1f"|format(rec.Recommended_Quantity) }} {{ item.unit }}</li>
                             <li><strong>Lead Time:</strong> {{ rec.Lead_Time_Days }} days</li>
-                            {% set found_rec = true %}
                         {% endif %}
                     {% endfor %}
-                    {% if not found_rec %}
-                        <li><em>No ordering needed</em></li>
-                    {% endif %}
                 </ul>
             </div>
         </div>
