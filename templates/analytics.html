@@ -95,7 +95,6 @@
                         {% if rec.Item_Name == item.item_name %}
                             <li><strong>Recommended Order:</strong> {{ "%.1f"|format(rec.Recommended_Quantity) }} {{ item.unit }}</li>
                             <li><strong>Lead Time:</strong> {{ rec.Lead_Time_Days }} days</li>
-                            <li><strong>Stock Status:</strong> {{ rec.Urgency }}</li>
                             {% set found_rec = true %}
                         {% endif %}
                     {% endfor %}
