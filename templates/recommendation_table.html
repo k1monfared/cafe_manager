@@ -1,7 +1,3 @@
-<!-- Reusable Purchase Recommendations Table -->
-<!-- Usage: {% include 'recommendation_table.html' %} -->
-<!-- Expects 'recommendations' variable to be passed in context -->
-
 <div class="table-responsive">
     <table class="table table-hover">
         <thead>
@@ -27,14 +23,14 @@
                 <td>{{ "%.1f"|format(rec.Avg_Daily_Usage) }} {{ rec.Unit }}/day</td>
                 <td><small>{{ rec.Urgency_Reason }}</small></td>
                 <td>
-                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ rec.Item_Name|replace(' ', '_') }}" aria-expanded="false">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ rec.Item_Name|replace(' ', '_')|replace('-', '_') }}" aria-expanded="false">
                         <i class="bi bi-info-circle"></i> Details
                     </button>
                 </td>
             </tr>
             <tr>
                 <td colspan="8" class="p-0">
-                    <div class="collapse" id="details-{{ rec.Item_Name|replace(' ', '_') }}">
+                    <div class="collapse" id="details-{{ rec.Item_Name|replace(' ', '_')|replace('-', '_') }}">
                         <div class="card card-body m-2">
                             <div class="row">
                                 <div class="col-md-8">
