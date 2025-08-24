@@ -8,7 +8,6 @@
                 <th class="sortable" data-sort="days"><i class="bi bi-clock"></i> Days Remaining <i class="bi bi-arrow-down-up sort-icon"></i></th>
                 <th class="sortable" data-sort="stock"><i class="bi bi-graph-down"></i> Current Stock <i class="bi bi-arrow-down-up sort-icon"></i></th>
                 <th class="sortable" data-sort="usage"><i class="bi bi-speedometer2"></i> Daily Usage <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                <th><i class="bi bi-info-circle"></i> Reason</th>
                 <th><i class="bi bi-list-ul"></i> Details</th>
             </tr>
         </thead>
@@ -27,7 +26,6 @@
                 <td>{{ "%.1f"|format(rec.Days_Remaining) }} days</td>
                 <td>{{ "%.1f"|format(rec.Current_Stock) }} {{ rec.Unit }}</td>
                 <td>{{ "%.1f"|format(rec.Avg_Daily_Usage) }} {{ rec.Unit }}/day</td>
-                <td><small>{{ rec.Urgency_Reason }}</small></td>
                 <td>
                     <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ rec.Item_Name|replace(' ', '_')|replace('-', '_') }}" aria-expanded="false">
                         <i class="bi bi-info-circle"></i> Details
@@ -35,7 +33,7 @@
                 </td>
             </tr>
             <tr>
-                <td colspan="8" class="p-0">
+                <td colspan="7" class="p-0">
                     <div class="collapse" id="details-{{ rec.Item_Name|replace(' ', '_')|replace('-', '_') }}">
                         <div class="card card-body m-2">
                             <div class="row">

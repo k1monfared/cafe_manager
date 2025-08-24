@@ -117,22 +117,6 @@
 </div>
 {% endif %}
 
-<!-- Purchase Recommendations -->
-{% if recommendations %}
-<div class="card mb-4">
-    <div class="card-header">
-        <h5><i class="bi bi-cart-plus"></i> Purchase Recommendations</h5>
-    </div>
-    <div class="card-body">
-        {% include 'recommendation_table.html' %}
-    </div>
-</div>
-{% else %}
-<div class="alert alert-success">
-    <h5><i class="bi bi-check-circle"></i> No Purchase Recommendations</h5>
-    <p>All items have sufficient stock levels. Great job managing your inventory!</p>
-</div>
-{% endif %}
 
 <!-- Manual Recalculate -->
 <div class="card">
