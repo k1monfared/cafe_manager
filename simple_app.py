@@ -285,32 +285,69 @@ def audit_page():
 def upload_csv():
     """Handle CSV file uploads"""
     try:
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'No file provided'})
+        # Use test engine if in testing mode
+        current_engine = app.config.get('engine', engine)
         
-        file = request.files['file']
+        if 'csv_file' not in request.files:
+            flash('No file provided', 'error')
+            return redirect('/upload')
+        
+        file = request.files['csv_file']
         file_type = request.form.get('file_type')
         
         if file.filename == '':
-            return jsonify({'success': False, 'error': 'No file selected'})
+            flash('No file selected', 'error')
+            return redirect('/upload')
         
         if not file_type:
-            return jsonify({'success': False, 'error': 'File type not specified'})
+            flash('File type not specified', 'error')
+            return redirect('/upload')
         
-        # Read CSV content
+        # Validate file extension
+        if not file.filename.lower().endswith('.csv'):
+            flash('Please upload a CSV file', 'error')
+            return redirect('/upload')
+        
+        # Read and validate CSV content
         content = file.read().decode('utf-8')
+        
+        # Basic validation - check if it has comma separators
+        lines = content.strip().split('\n')
+        if len(lines) < 2:
+            flash('CSV file must have at least a header and one data row', 'error')
+            return redirect('/upload')
         
         # Save to appropriate file
         if file_type == 'stock_levels':
-            current_engine = app.config.get('engine', engine)
             file_path = current_engine.stock_file
+            # Validate stock levels format
+            if 'Date,Item_Name,Current_Stock' not in lines[0]:
+                flash('Stock levels CSV must have columns: Date,Item_Name,Current_Stock', 'error')
+                return redirect('/upload')
         elif file_type == 'deliveries':
             file_path = current_engine.delivery_file
+            # Validate deliveries format
+            if 'Date,Item_Name,Delivery_Amount' not in lines[0]:
+                flash('Deliveries CSV must have columns: Date,Item_Name,Delivery_Amount,Notes', 'error')
+                return redirect('/upload')
         elif file_type == 'item_info':
             file_path = current_engine.item_info_file
+            # Validate item info format
+            if 'Item_Name,Unit' not in lines[0]:
+                flash('Item info CSV must have columns starting with: Item_Name,Unit', 'error')
+                return redirect('/upload')
         else:
-            return jsonify({'success': False, 'error': 'Invalid file type'})
+            flash('Invalid file type', 'error')
+            return redirect('/upload')
         
+        # Backup existing file
+        import shutil
+        import os
+        if os.path.exists(file_path):
+            backup_path = file_path + '.backup'
+            shutil.copy2(file_path, backup_path)
+        
+        # Save new content
         with open(file_path, 'w') as f:
             f.write(content)
         
@@ -320,10 +357,12 @@ def upload_csv():
             current_engine.calculate_forecast()
             current_engine.generate_recommendations()
         
-        return jsonify({'success': True, 'message': f'Successfully uploaded {file_type} data'})
+        flash(f'Successfully uploaded {file_type.replace("_", " ")} data and recalculated forecasts!', 'success')
+        return redirect('/upload')
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        flash(f'Error uploading file: {str(e)}', 'error')
+        return redirect('/upload')
 
 @app.route('/api/recalculate', methods=['POST'])
 def recalculate():
