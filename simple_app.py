@@ -202,6 +202,85 @@ def upload_page():
     """CSV upload page"""
     return render_template('upload.html')
 
+@app.route('/audit')
+def audit_page():
+    """Comprehensive audit page showing 14-day history, consumption rates, and forecasts"""
+    try:
+        # Use test engine if in testing mode
+        current_engine = app.config.get('engine', engine)
+        
+        # Load all data
+        stock_df = current_engine.load_stock_data()
+        item_info_df = current_engine.load_item_info()
+        
+        # Load consumption data (calculated by engine)
+        consumption_df = pd.DataFrame()
+        try:
+            consumption_df = pd.read_csv(current_engine.consumption_file)
+        except FileNotFoundError:
+            pass
+        
+        audit_data = []
+        
+        if not stock_df.empty and not item_info_df.empty:
+            from datetime import datetime, timedelta
+            
+            for item_name in item_info_df['Item_Name']:
+                item_stock_data = stock_df[stock_df['Item_Name'] == item_name].copy()
+                item_consumption_data = consumption_df[consumption_df['Item_Name'] == item_name].copy() if not consumption_df.empty else pd.DataFrame()
+                item_info = item_info_df[item_info_df['Item_Name'] == item_name].iloc[0]
+                
+                if not item_stock_data.empty:
+                    # Convert dates and sort
+                    item_stock_data['Date'] = pd.to_datetime(item_stock_data['Date'])
+                    item_stock_data = item_stock_data.sort_values('Date')
+                    
+                    # Get last 14 days or all available data
+                    recent_data = item_stock_data.tail(14)
+                    
+                    # Get consumption data for the same period
+                    consumption_values = []
+                    if not item_consumption_data.empty:
+                        item_consumption_data['Date'] = pd.to_datetime(item_consumption_data['Date'])
+                        consumption_values = item_consumption_data['Consumption'].tolist()[-13:]  # Last 13 days (14 stock points = 13 consumption days)
+                    
+                    # Calculate average consumption rate
+                    avg_consumption = sum(consumption_values) / len(consumption_values) if consumption_values else 0
+                    
+                    # Prepare chart data
+                    dates = [d.strftime('%Y-%m-%d') for d in recent_data['Date']]
+                    stock_levels = recent_data['Current_Stock'].tolist()
+                    
+                    audit_data.append({
+                        'item_name': item_name,
+                        'unit': item_info['Unit'],
+                        'current_stock': recent_data.iloc[-1]['Current_Stock'] if not recent_data.empty else 0,
+                        'min_threshold': item_info['Min_Threshold'],
+                        'max_capacity': item_info['Max_Capacity'],
+                        'avg_consumption': avg_consumption,
+                        'data_points': len(recent_data),
+                        'dates': dates,
+                        'stock_levels': stock_levels,
+                        'consumption_data': consumption_values,
+                        'date_range': f"{dates[0]} to {dates[-1]}" if dates else "No data"
+                    })
+        
+        # Load forecast data for comparison
+        forecast_data = []
+        try:
+            forecast_df = pd.read_csv(current_engine.forecast_file)
+            if not forecast_df.empty:
+                forecast_data = forecast_df.to_dict('records')
+        except FileNotFoundError:
+            pass
+        
+        return render_template('audit.html', 
+                             audit_data=audit_data,
+                             forecast_data=forecast_data)
+    except Exception as e:
+        flash(f'Error loading audit data: {str(e)}', 'error')
+        return render_template('audit.html', audit_data=[], forecast_data=[])
+
 @app.route('/api/upload_csv', methods=['POST'])
 def upload_csv():
     """Handle CSV file uploads"""

@@ -1,0 +1,354 @@
+{% extends "simple_base.html" %}
+
+{% block title %}Audit Report - Simple Inventory Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-clipboard-check"></i> Inventory Audit Report</h1>
+        <p class="text-muted">Comprehensive view of inventory levels, consumption rates, and forecast accuracy</p>
+    </div>
+</div>
+
+{% if audit_data %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5>{{ audit_data|length }}</h5>
+                <small>Items Tracked</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5>{{ forecast_data|length }}</h5>
+                <small>Active Forecasts</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5>{{ audit_data|selectattr("data_points", "ge", 7)|list|length }}</h5>
+                <small>Items with 7+ Days Data</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h5>{{ audit_data|selectattr("current_stock", "le", "min_threshold")|list|length }}</h5>
+                <small>Below Threshold</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Audit for Each Item -->
+{% for item in audit_data %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-box"></i> {{ item.item_name }}</h5>
+        <div class="row text-center">
+            <div class="col-md-2">
+                <small class="text-muted">Current Stock</small><br>
+                <strong class="text-{{ 'danger' if item.current_stock <= item.min_threshold else 'warning' if item.current_stock < item.min_threshold * 2 else 'success' }}">
+                    {{ "%.1f"|format(item.current_stock) }} {{ item.unit }}
+                </strong>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Avg Daily Use</small><br>
+                <strong>{{ "%.2f"|format(item.avg_consumption) }} {{ item.unit }}/day</strong>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Threshold</small><br>
+                <strong>{{ "%.1f"|format(item.min_threshold) }} {{ item.unit }}</strong>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Capacity</small><br>
+                <strong>{{ "%.1f"|format(item.max_capacity) }} {{ item.unit }}</strong>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Data Points</small><br>
+                <strong>{{ item.data_points }} days</strong>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Date Range</small><br>
+                <small>{{ item.date_range }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Stock Level Chart -->
+        <div class="row">
+            <div class="col-lg-8">
+                <h6><i class="bi bi-bar-chart"></i> Daily Stock Levels</h6>
+                <div class="chart-container">
+                    <canvas id="stock-chart-{{ loop.index }}"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <!-- Consumption Rate Table -->
+                <h6><i class="bi bi-speedometer2"></i> Consumption Analysis</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Average Daily Use</td>
+                                <td>{{ "%.2f"|format(item.avg_consumption) }} {{ item.unit }}</td>
+                            </tr>
+                            <tr>
+                                <td>Days at Current Rate</td>
+                                <td>{{ "%.1f"|format(item.current_stock / item.avg_consumption) if item.avg_consumption > 0 else "∞" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Stock Utilization</td>
+                                <td>{{ "%.0f"|format((item.current_stock / item.max_capacity) * 100) }}%</td>
+                            </tr>
+                            {% if item.consumption_data %}
+                            <tr>
+                                <td>Min Daily Use</td>
+                                <td>{{ "%.2f"|format(item.consumption_data|min) }} {{ item.unit }}</td>
+                            </tr>
+                            <tr>
+                                <td>Max Daily Use</td>
+                                <td>{{ "%.2f"|format(item.consumption_data|max) }} {{ item.unit }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Data Table -->
+        <details class="mt-3">
+            <summary class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-table"></i> Show Detailed Daily Data
+            </summary>
+            <div class="mt-3">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Stock Level</th>
+                                <th>Daily Change</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(item.dates|length) %}
+                            <tr>
+                                <td>{{ item.dates[i] }}</td>
+                                <td>{{ "%.1f"|format(item.stock_levels[i]) }} {{ item.unit }}</td>
+                                <td>
+                                    {% if i > 0 %}
+                                        {% set change = item.stock_levels[i-1] - item.stock_levels[i] %}
+                                        <span class="text-{{ 'success' if change < 0 else 'danger' if change > 0 else 'secondary' }}">
+                                            {{ "%.1f"|format(change) }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.stock_levels[i] <= item.min_threshold %}
+                                        <span class="badge bg-danger">Below Threshold</span>
+                                    {% elif item.stock_levels[i] < item.min_threshold * 2 %}
+                                        <span class="badge bg-warning">Low</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Good</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </details>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Forecast Validation Section -->
+{% if forecast_data %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-graph-up"></i> Forecast Validation</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Current Stock</th>
+                        <th>Predicted Daily Use</th>
+                        <th>Actual Daily Use</th>
+                        <th>Accuracy</th>
+                        <th>Forecast Quality</th>
+                        <th>Days Until Runout</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for forecast in forecast_data %}
+                    {% set audit_item = audit_data|selectattr("item_name", "equalto", forecast.Item_Name)|first %}
+                    <tr>
+                        <td><strong>{{ forecast.Item_Name }}</strong></td>
+                        <td>{{ "%.1f"|format(forecast.Current_Stock) }} {{ forecast.Unit }}</td>
+                        <td>{{ "%.2f"|format(forecast.Avg_Daily_Consumption) }}</td>
+                        <td>
+                            {% if audit_item %}
+                                {{ "%.2f"|format(audit_item.avg_consumption) }}
+                            {% else %}
+                                No data
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if audit_item and forecast.Avg_Daily_Consumption > 0 %}
+                                {% set accuracy = 100 - abs(forecast.Avg_Daily_Consumption - audit_item.avg_consumption) / forecast.Avg_Daily_Consumption * 100 %}
+                                <span class="text-{{ 'success' if accuracy >= 85 else 'warning' if accuracy >= 70 else 'danger' }}">
+                                    {{ "%.0f"|format(accuracy) }}%
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if forecast.Confidence == 'High' else 'warning' if forecast.Confidence == 'Medium' else 'secondary' }}">
+                                {{ forecast.Confidence }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-{{ 'danger' if forecast.Days_Remaining < 3 else 'warning' if forecast.Days_Remaining < 7 else 'success' }}">
+                                {{ "%.1f"|format(forecast.Days_Remaining) }} days
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+    <h5><i class="bi bi-info-circle"></i> No Audit Data Available</h5>
+    <p>Add some stock entries to generate audit reports.</p>
+    <a href="/stock_entry" class="btn btn-primary">Add Stock Entry</a>
+</div>
+{% endif %}
+
+<!-- Export Options -->
+<div class="card">
+    <div class="card-body text-center">
+        <h6>Export Audit Data</h6>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print Report
+            </button>
+            <button class="btn btn-outline-success" onclick="exportToCSV()">
+                <i class="bi bi-download"></i> Export to CSV
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Create stock level charts for each item
+{% if audit_data %}
+{% for item in audit_data %}
+const stockCtx{{ loop.index }} = document.getElementById('stock-chart-{{ loop.index }}').getContext('2d');
+new Chart(stockCtx{{ loop.index }}, {
+    type: 'line',
+    data: {
+        labels: {{ item.dates|safe }},
+        datasets: [{
+            label: 'Stock Level ({{ item.unit }})',
+            data: {{ item.stock_levels|safe }},
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.1,
+            fill: true
+        }, {
+            label: 'Min Threshold',
+            data: Array({{ item.dates|length }}).fill({{ item.min_threshold }}),
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            borderDash: [5, 5],
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Stock Level ({{ item.unit }})'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: '{{ item.item_name }} - 14-Day Stock History'
+            }
+        }
+    }
+});
+{% endfor %}
+{% endif %}
+
+// Export to CSV function
+function exportToCSV() {
+    const csvData = [];
+    csvData.push(['Item Name', 'Current Stock', 'Unit', 'Avg Daily Consumption', 'Days Remaining', 'Data Points', 'Date Range']);
+    
+    {% for item in audit_data %}
+    csvData.push([
+        '{{ item.item_name }}',
+        '{{ "%.1f"|format(item.current_stock) }}',
+        '{{ item.unit }}',
+        '{{ "%.2f"|format(item.avg_consumption) }}',
+        '{{ "%.1f"|format(item.current_stock / item.avg_consumption) if item.avg_consumption > 0 else "∞" }}',
+        '{{ item.data_points }}',
+        '{{ item.date_range }}'
+    ]);
+    {% endfor %}
+    
+    const csv = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'inventory_audit_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}
