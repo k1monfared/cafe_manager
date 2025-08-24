@@ -100,7 +100,7 @@
                         {% endif %}
                     {% endfor %}
                     {% if not found_rec %}
-                        <li><strong>Lead Time:</strong> {{ item.Lead_Time_Days }} days</li>
+                        <li><strong>Lead Time:</strong> {{ item_info[item.item_name].Lead_Time_Days if item_info and item.item_name in item_info else item.Lead_Time_Days }} days</li>
                         <li><strong>Stock Status:</strong> Sufficient</li>
                     {% endif %}
                 </ul>

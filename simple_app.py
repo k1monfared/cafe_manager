@@ -217,12 +217,24 @@ def analytics():
         except FileNotFoundError:
             pass
         
+        # Load item info data
+        item_info_data = {}
+        try:
+            item_info_df = current_engine.load_item_info()
+            if not item_info_df.empty:
+                # Create a dictionary mapping item names to their info
+                for _, row in item_info_df.iterrows():
+                    item_info_data[row['Item_Name']] = row.to_dict()
+        except FileNotFoundError:
+            pass
+        
         return render_template('analytics.html', 
                              forecast_data=forecast_data,
-                             recommendations=recommendations_data)
+                             recommendations=recommendations_data,
+                             item_info=item_info_data)
     except Exception as e:
         flash(f'Error loading analytics: {str(e)}', 'error')
-        return render_template('analytics.html', forecast_data=[], recommendations=[])
+        return render_template('analytics.html', forecast_data=[], recommendations=[], item_info={})
 
 @app.route('/upload')
 def upload_page():
