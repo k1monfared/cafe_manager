@@ -6,12 +6,31 @@
 <div class="row">
     <div class="col-12">
         <h1><i class="bi bi-upload"></i> Upload CSV Files</h1>
-        <p class="text-muted">Upload daily stock levels or delivery records</p>
+        <p class="text-muted">Upload item information, daily stock levels, or delivery records</p>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-square"></i> Upload Item Information</h5>
+            </div>
+            <div class="card-body">
+                <form action="/api/upload_csv" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="file_type" value="item_info">
+                    <div class="mb-3">
+                        <label for="itemInfoFile" class="form-label">CSV File</label>
+                        <input type="file" class="form-control" id="itemInfoFile" name="csv_file" accept=".csv" required>
+                        <div class="form-text">Expected format: Item_Name,Unit,Min_Threshold,Max_Capacity,Lead_Time_Days,Cost_Per_Unit,Supplier,Notes</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload Item Info</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
                 <h5><i class="bi bi-file-spreadsheet"></i> Upload Daily Stock Levels</h5>
@@ -30,7 +49,7 @@
         </div>
     </div>
     
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
                 <h5><i class="bi bi-truck"></i> Upload Deliveries</h5>
@@ -56,13 +75,19 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <h6>Item Information Format:</h6>
+                <pre class="bg-light p-2">Item_Name,Unit,Min_Threshold,Max_Capacity,Lead_Time_Days,Cost_Per_Unit,Supplier,Notes
+House Blend Coffee,lbs,2.0,15.0,3,8.50,Coffee Roasters Inc,Store in dry place
+Whole Milk,gallons,3.0,20.0,1,4.25,Metro Dairy Supply,Keep refrigerated</pre>
+            </div>
+            <div class="col-md-4">
                 <h6>Daily Stock Levels Format:</h6>
                 <pre class="bg-light p-2">Date,Item_Name,Current_Stock
 2025-08-24,House Blend Coffee,12.5
 2025-08-24,Whole Milk,8.0</pre>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <h6>Deliveries Format:</h6>
                 <pre class="bg-light p-2">Date,Item_Name,Delivery_Amount,Notes
 2025-08-24,House Blend Coffee,15.0,Weekly delivery

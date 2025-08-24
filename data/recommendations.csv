@@ -1,66 +1,64 @@
 Item_Name,Current_Stock,Recommended_Quantity,Unit,Urgency,Days_Remaining,Urgency_Reason,Detailed_Explanation,Target_Stock_Level,Lead_Time_Days,Avg_Daily_Usage,Generated_Date
-Coffee Beans,156,74.3,units,HIGH,7.3,"Will run out in 7.3 days, need to order soon","Current stock: 156.0 units
-Daily usage: 21.5 units/day (14-day average)
-Days remaining: 7.3 days
-Lead time: 7 days
-Minimum threshold: 0.0 units
-Maximum capacity: 100.0 units
+Coffee Beans,256,0.0,lbs,GOOD,11.9,"Stock level is good, no action needed","Current stock: 256.0 lbs
+Daily usage: 21.5 lbs/day (14-day average)
+Days remaining: 11.9 days
+Lead time: 3 days
+Minimum threshold: 2.0 lbs
+Maximum capacity: 50.0 lbs
+
+Status: Stock level is sufficient. Current stock exceeds target level.
+No order needed at this time.
+
+Reason: Stock level is good, no action needed",40.0,3,21.47,2025-08-24 16:38:09
+Milk,0,43.5,gallons,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 1 days","Current stock: 0.0 gallons
+Daily usage: 19.5 gallons/day (14-day average)
+Days remaining: 0.0 days
+Lead time: 1 days
+Minimum threshold: 3.0 gallons
+Maximum capacity: 30.0 gallons
 
 Calculation:
-- Target stock level: 80.0 units (80% of capacity)
-- Expected consumption during 7-day delivery: 150.3 units
-- Recommended order: 74.3 units
+- Target stock level: 24.0 gallons (80% of capacity)
+- Expected consumption during 1-day delivery: 19.5 gallons
+- Recommended order: 43.5 gallons
 
-Reason: Will run out in 7.3 days, need to order soon",80.0,7,21.47,2025-08-24 16:04:14
-Milk,0,216.7,units,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 7 days","Current stock: 0.0 units
-Daily usage: 19.5 units/day (14-day average)
+Reason: Will run out in 0.0 days, but supplier needs 1 days",24.0,1,19.53,2025-08-24 16:38:09
+Paper Cups,0,781.1,cases,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 7 days","Current stock: 0.0 cases
+Daily usage: 88.7 cases/day (14-day average)
 Days remaining: 0.0 days
 Lead time: 7 days
-Minimum threshold: 0.0 units
-Maximum capacity: 100.0 units
+Minimum threshold: 5.0 cases
+Maximum capacity: 200.0 cases
 
 Calculation:
-- Target stock level: 80.0 units (80% of capacity)
-- Expected consumption during 7-day delivery: 136.7 units
-- Recommended order: 216.7 units
+- Target stock level: 160.0 cases (80% of capacity)
+- Expected consumption during 7-day delivery: 621.1 cases
+- Recommended order: 781.1 cases
 
-Reason: Will run out in 0.0 days, but supplier needs 7 days",80.0,7,19.53,2025-08-24 16:04:14
-Paper Cups,0,701.1,units,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 7 days","Current stock: 0.0 units
-Daily usage: 88.7 units/day (14-day average)
+Reason: Will run out in 0.0 days, but supplier needs 7 days",160.0,7,88.73,2025-08-24 16:38:09
+Pastries,0,33.6,dozen,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 2 days","Current stock: 0.0 dozen
+Daily usage: 6.8 dozen/day (14-day average)
 Days remaining: 0.0 days
-Lead time: 7 days
-Minimum threshold: 0.0 units
-Maximum capacity: 100.0 units
+Lead time: 2 days
+Minimum threshold: 2.0 dozen
+Maximum capacity: 25.0 dozen
 
 Calculation:
-- Target stock level: 80.0 units (80% of capacity)
-- Expected consumption during 7-day delivery: 621.1 units
-- Recommended order: 701.1 units
+- Target stock level: 20.0 dozen (80% of capacity)
+- Expected consumption during 2-day delivery: 13.6 dozen
+- Recommended order: 33.6 dozen
 
-Reason: Will run out in 0.0 days, but supplier needs 7 days",80.0,7,88.73,2025-08-24 16:04:14
-Pastries,0,127.6,units,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 7 days","Current stock: 0.0 units
-Daily usage: 6.8 units/day (14-day average)
-Days remaining: 0.0 days
-Lead time: 7 days
-Minimum threshold: 0.0 units
-Maximum capacity: 100.0 units
-
-Calculation:
-- Target stock level: 80.0 units (80% of capacity)
-- Expected consumption during 7-day delivery: 47.6 units
-- Recommended order: 127.6 units
-
-Reason: Will run out in 0.0 days, but supplier needs 7 days",80.0,7,6.8,2025-08-24 16:04:14
-Sugar,37,99.5,units,CRITICAL,4.6,"Will run out in 4.6 days, but supplier needs 7 days","Current stock: 37.0 units
-Daily usage: 8.1 units/day (14-day average)
+Reason: Will run out in 0.0 days, but supplier needs 2 days",20.0,2,6.8,2025-08-24 16:38:09
+Sugar,37,15.4,lbs,CRITICAL,4.6,"Will run out in 4.6 days, but supplier needs 5 days","Current stock: 37.0 lbs
+Daily usage: 8.1 lbs/day (14-day average)
 Days remaining: 4.6 days
-Lead time: 7 days
-Minimum threshold: 0.0 units
-Maximum capacity: 100.0 units
+Lead time: 5 days
+Minimum threshold: 1.0 lbs
+Maximum capacity: 15.0 lbs
 
 Calculation:
-- Target stock level: 80.0 units (80% of capacity)
-- Expected consumption during 7-day delivery: 56.5 units
-- Recommended order: 99.5 units
+- Target stock level: 12.0 lbs (80% of capacity)
+- Expected consumption during 5-day delivery: 40.4 lbs
+- Recommended order: 15.4 lbs
 
-Reason: Will run out in 4.6 days, but supplier needs 7 days",80.0,7,8.07,2025-08-24 16:04:14
+Reason: Will run out in 4.6 days, but supplier needs 5 days",12.0,5,8.07,2025-08-24 16:38:09

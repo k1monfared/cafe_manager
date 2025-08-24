@@ -25,7 +25,7 @@ Date,Item_Name,Consumption,Stock_Before_Delivery,Delivery_Amount,Previous_Stock,
 2025-08-21,Coffee Beans,20.0,3.0,0.0,23,"Started with 23.0, no deliveries, ended with 3.0"
 2025-08-22,Coffee Beans,3.0,0.0,0.0,3,"Started with 3.0, no deliveries, ended with 0.0"
 2025-08-23,Coffee Beans,40.0,0.0,40.0,0,"Started with 0.0, received 40.0 delivery, ended with 0.0"
-2025-08-24,Coffee Beans,0.0,0.0,156.0,0,"Started with 0.0, received 156.0 delivery, ended with 156.0"
+2025-08-24,Coffee Beans,0.0,0.0,256.0,0,"Started with 0.0, received 256.0 delivery, ended with 256.0"
 2025-07-29,Milk,0.0,38.0,121.0,38,"Started with 38.0, received 121.0 delivery, ended with 159.0"
 2025-07-30,Milk,34.0,125.0,0.0,159,"Started with 159.0, no deliveries, ended with 125.0"
 2025-07-31,Milk,24.0,101.0,0.0,125,"Started with 125.0, no deliveries, ended with 101.0"
