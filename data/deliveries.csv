@@ -1,0 +1,10 @@
+Date,Item_Name,Delivery_Amount,Notes
+2025-08-10,12oz Paper Cups,8.0,New supply order
+2025-08-22,12oz Paper Cups,7.0,Emergency restock
+2025-08-10,House Blend Coffee,15.0,Weekly coffee delivery
+2025-08-18,House Blend Coffee,12.0,Weekly coffee delivery
+2025-08-23,Test Coffee,10.0,Test delivery
+2025-08-24,Test Milk,20.0,Integration test delivery
+2025-08-10,Vanilla Syrup,10.0,Restocked flavors
+2025-08-10,Whole Milk,20.0,Monday delivery
+2025-08-16,Whole Milk,16.0,Friday delivery

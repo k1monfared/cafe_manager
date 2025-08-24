@@ -1,0 +1,14 @@
+Item_Name,Current_Stock,Recommended_Quantity,Unit,Urgency,Days_Remaining,Urgency_Reason,Detailed_Explanation,Target_Stock_Level,Lead_Time_Days,Avg_Daily_Usage,Generated_Date
+Whole Milk,2.4,15.8,gallons,HIGH,1.1,"Will run out in 1.1 days, need to order soon","Current stock: 2.4 gallons
+Daily usage: 2.2 gallons/day (14-day average)
+Days remaining: 1.1 days
+Lead time: 1 days
+Minimum threshold: 3.0 gallons
+Maximum capacity: 20.0 gallons
+
+Calculation:
+- Target stock level: 16.0 gallons (80% of capacity)
+- Expected consumption during 1-day delivery: 2.2 gallons
+- Recommended order: 15.8 gallons
+
+Reason: Will run out in 1.1 days, need to order soon",16.0,1,2.2,2025-08-23 19:31:12

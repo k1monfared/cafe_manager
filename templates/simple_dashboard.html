@@ -1,0 +1,173 @@
+{% extends "simple_base.html" %}
+
+{% block title %}Dashboard - Simple Inventory Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-speedometer2"></i> Inventory Dashboard</h1>
+    </div>
+</div>
+
+<!-- Status Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ status.total_items or 0 }}</h4>
+                        <p class="mb-0">Total Items</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-box h2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ status.items_below_threshold or 0 }}</h4>
+                        <p class="mb-0">Below Threshold</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-exclamation-triangle h2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ status.critical_items or 0 }}</h4>
+                        <p class="mb-0">Critical Items</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-exclamation-circle h2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ status.recommendations_count or 0 }}</h4>
+                        <p class="mb-0">Recommendations</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-lightbulb h2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Stock Levels -->
+{% if current_stocks %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-list-check"></i> Current Stock Levels</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Current Stock</th>
+                                <th>Min Threshold</th>
+                                <th>Status</th>
+                                <th>Last Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in current_stocks %}
+                            <tr>
+                                <td><strong>{{ item.item_name }}</strong></td>
+                                <td>{{ "%.1f"|format(item.current_stock) }} {{ item.unit }}</td>
+                                <td>{{ "%.1f"|format(item.min_threshold) }} {{ item.unit }}</td>
+                                <td><span class="badge bg-{{ item.status_class }}">{{ item.status_text }}</span></td>
+                                <td><small class="text-muted">{{ item.last_updated }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Urgent Recommendations -->
+{% if recommendations %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-exclamation-triangle"></i> Purchase Recommendations</h5>
+            </div>
+            <div class="card-body">
+                {% for rec in recommendations %}
+                <div class="alert alert-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' }}">
+                    <h6><i class="bi bi-cart-plus"></i> <strong>{{ rec.Item_Name }}</strong></h6>
+                    <p class="mb-2">
+                        <strong>Order {{ "%.1f"|format(rec.Recommended_Quantity) }} {{ rec.Unit }}</strong>
+                        <span class="badge bg-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'secondary' }} ms-2">{{ rec.Urgency }}</span>
+                    </p>
+                    <p class="mb-0">{{ rec.Urgency_Reason }}</p>
+                    <small class="text-muted">Current: {{ "%.1f"|format(rec.Current_Stock) }} {{ rec.Unit }} | Days remaining: {{ "%.1f"|format(rec.Days_Remaining) }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-plus-circle h1 text-primary"></i>
+                <h5>Add Stock Count</h5>
+                <p class="text-muted">Enter today's inventory count</p>
+                <a href="/stock_entry" class="btn btn-primary">Add Stock Entry</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up h1 text-success"></i>
+                <h5>View Analytics</h5>
+                <p class="text-muted">Detailed consumption analysis</p>
+                <a href="/analytics" class="btn btn-success">View Analytics</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if status.last_updated %}
+<div class="row mt-4">
+    <div class="col-12">
+        <small class="text-muted">Last updated: {{ status.last_updated }}</small>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

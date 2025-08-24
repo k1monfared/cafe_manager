@@ -1,6 +1,0 @@
-Order_Date,Supplier_Name,Item_Name,Quantity_Ordered,Quantity_Received,Unit_Cost,Total_Cost,Delivery_Date,Order_Status,Payment_Status,Notes
-📝 INSTRUCTIONS: Enter as YYYY-MM-DD,Exact supplier name,Item ordered,How much you ordered,How much actually delivered,Cost per unit (no $ symbol),Total line cost,When order arrived,delivered/pending/partial/cancelled,paid/pending/overdue,Any special notes
-2025-01-01,Metro Dairy Supply,Whole Milk,20,20,4.25,85.00,2025-01-02,delivered,paid,Regular weekly order
-2025-01-01,Coffee Roasters Inc,House Blend Coffee,10,10,8.50,85.00,2025-01-04,delivered,paid,Monthly coffee order
-2025-01-05,Paper Supply Co,12oz Paper Cups,5,5,42.00,210.00,2025-01-12,delivered,paid,Bulk order discount
-2025-01-08,Flavor Solutions,Vanilla Syrup,6,6,9.25,55.50,2025-01-12,delivered,pending,Net 30 terms

@@ -1,0 +1,5 @@
+Item_Name,Unit,Min_Threshold,Max_Capacity,Lead_Time_Days,Cost_Per_Unit,Supplier,Notes
+Whole Milk,gallons,3.0,20.0,1,4.25,Metro Dairy Supply,Keep refrigerated
+House Blend Coffee,lbs,2.0,15.0,3,8.50,Coffee Roasters Inc,Store in dry place
+12oz Paper Cups,cases,1.0,8.0,7,42.00,Paper Supply Co,Dry storage
+Vanilla Syrup,bottles,1.0,10.0,4,9.25,Flavor Solutions,Room temperature

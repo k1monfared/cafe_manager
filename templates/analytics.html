@@ -1,0 +1,209 @@
+{% extends "simple_base.html" %}
+
+{% block title %}Analytics - Simple Inventory Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-graph-up"></i> Analytics & Explanations</h1>
+        <p class="text-muted">Detailed consumption analysis and forecasting explanations</p>
+    </div>
+</div>
+
+{% if forecast_data %}
+<!-- Forecasts with Charts -->
+{% for item in forecast_data %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-box"></i> {{ item.item_name }}</h5>
+        <div class="row text-center">
+            <div class="col-md-3">
+                <small class="text-muted">Current Stock</small><br>
+                <strong>{{ "%.1f"|format(item.current_stock) }} {{ item.unit }}</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Daily Usage</small><br>
+                <strong>{{ "%.1f"|format(item.avg_daily_consumption) }} {{ item.unit }}/day</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Days Remaining</small><br>
+                <strong class="text-{{ 'danger' if item.days_remaining < 3 else 'warning' if item.days_remaining < 7 else 'success' }}">{{ "%.1f"|format(item.days_remaining) }} days</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Forecast Quality</small><br>
+                <span class="badge bg-{{ 'success' if item.confidence == 'High' else 'warning' if item.confidence == 'Medium' else 'secondary' }}">{{ item.confidence }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Usage Chart -->
+        {% if item.chart_dates and item.chart_consumption %}
+        <h6><i class="bi bi-bar-chart"></i> Daily Consumption (Last 14 Days)</h6>
+        <div class="chart-container">
+            <canvas id="chart-{{ loop.index }}"></canvas>
+        </div>
+        {% endif %}
+        
+        <!-- Forecast Details -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h6><i class="bi bi-info-circle"></i> Stock Information</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Current Stock:</strong> {{ "%.1f"|format(item.current_stock) }} {{ item.unit }}</li>
+                    <li><strong>Minimum Threshold:</strong> {{ "%.1f"|format(item.min_threshold) }} {{ item.unit }}</li>
+                    <li><strong>Maximum Capacity:</strong> {{ "%.1f"|format(item.max_capacity) }} {{ item.unit }}</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="bi bi-calculator"></i> Usage Analysis</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Average Daily Usage:</strong> {{ "%.2f"|format(item.avg_daily_consumption) }} {{ item.unit }}/day</li>
+                    <li><strong>Estimated Runout:</strong> {{ item.runout_date }}</li>
+                    <li><strong>Data Points Used:</strong> {{ item.data_points }} days</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="alert alert-info">
+    <h5><i class="bi bi-info-circle"></i> No Forecast Data Available</h5>
+    <p>Add some daily stock entries to generate consumption analysis and forecasts.</p>
+    <a href="/stock_entry" class="btn btn-primary">Add Stock Entry</a>
+</div>
+{% endif %}
+
+<!-- Purchase Recommendations -->
+{% if recommendations %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-cart-plus"></i> Purchase Recommendations</h5>
+    </div>
+    <div class="card-body">
+        {% for rec in recommendations %}
+        <div class="explanation-box urgency-{{ rec.Urgency.lower() }}">
+            <h6><strong>{{ rec.Item_Name }}</strong> 
+                <span class="badge bg-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' }}">{{ rec.Urgency }}</span>
+            </h6>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h5 class="text-primary">Order {{ "%.1f"|format(rec.Recommended_Quantity) }} {{ rec.Unit }}</h5>
+                    <p class="mb-0">{{ rec.Urgency_Reason }}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">Generated: {{ rec.Generated_Date }}</small>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <details>
+                        <summary class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-info-circle"></i> Show Detailed Explanation
+                        </summary>
+                        <div class="mt-3">
+                            <pre class="bg-light p-3 rounded">{{ rec.Detailed_Explanation }}</pre>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success">
+    <h5><i class="bi bi-check-circle"></i> No Purchase Recommendations</h5>
+    <p>All items have sufficient stock levels. Great job managing your inventory!</p>
+</div>
+{% endif %}
+
+<!-- Manual Recalculate -->
+<div class="card">
+    <div class="card-body text-center">
+        <h6>Data Not Looking Right?</h6>
+        <button id="recalculateBtn" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-clockwise"></i> Recalculate Analytics
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Create charts for each item
+{% if forecast_data %}
+{% for item in forecast_data %}
+{% if item.chart_dates and item.chart_consumption %}
+const ctx{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
+new Chart(ctx{{ loop.index }}, {
+    type: 'line',
+    data: {
+        labels: {{ item.chart_dates|safe }},
+        datasets: [{
+            label: 'Daily Consumption ({{ item.unit }})',
+            data: {{ item.chart_consumption|safe }},
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Consumption ({{ item.unit }})'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Average: {{ "%.1f"|format(item.avg_daily_consumption) }} {{ item.unit }}/day'
+            }
+        }
+    }
+});
+{% endif %}
+{% endfor %}
+{% endif %}
+
+// Handle recalculate button
+document.getElementById('recalculateBtn').addEventListener('click', function() {
+    this.innerHTML = '<i class="bi bi-hourglass"></i> Recalculating...';
+    this.disabled = true;
+    
+    fetch('/api/recalculate', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('❌ Network error: ' + error);
+        })
+        .finally(() => {
+            this.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Recalculate Analytics';
+            this.disabled = false;
+        });
+});
+</script>
+{% endblock %}

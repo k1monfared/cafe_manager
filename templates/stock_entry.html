@@ -1,0 +1,167 @@
+{% extends "simple_base.html" %}
+
+{% block title %}Add Stock Entry - Simple Inventory Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-plus-circle"></i> Add Stock Entry</h5>
+            </div>
+            <div class="card-body">
+                <form id="stockForm">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="item_name" class="form-label">Item</label>
+                        {% if items %}
+                        <select class="form-select" id="item_name" name="item_name" required>
+                            <option value="">Select an item</option>
+                            {% for item in items %}
+                            <option value="{{ item }}">{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <input type="text" class="form-control" id="item_name" name="item_name" placeholder="Enter item name" required>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="current_stock" class="form-label">Current Stock</label>
+                        <input type="number" step="0.1" class="form-control" id="current_stock" name="current_stock" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus"></i> Add Stock Entry
+                        </button>
+                        <a href="/" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Add Delivery Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="bi bi-truck"></i> Add Delivery Entry</h5>
+            </div>
+            <div class="card-body">
+                <form id="deliveryForm">
+                    <div class="mb-3">
+                        <label for="delivery_date" class="form-label">Delivery Date</label>
+                        <input type="date" class="form-control" id="delivery_date" name="delivery_date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="delivery_item" class="form-label">Item</label>
+                        {% if items %}
+                        <select class="form-select" id="delivery_item" name="delivery_item" required>
+                            <option value="">Select an item</option>
+                            {% for item in items %}
+                            <option value="{{ item }}">{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <input type="text" class="form-control" id="delivery_item" name="delivery_item" placeholder="Enter item name" required>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="delivery_amount" class="form-label">Delivery Amount</label>
+                        <input type="number" step="0.1" class="form-control" id="delivery_amount" name="delivery_amount" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="delivery_notes" class="form-label">Notes (optional)</label>
+                        <input type="text" class="form-control" id="delivery_notes" name="delivery_notes" placeholder="e.g., Monday delivery, Emergency restock">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-truck"></i> Add Delivery Entry
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Set today's date as default
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+document.getElementById('delivery_date').value = new Date().toISOString().split('T')[0];
+
+// Handle stock form submission
+document.getElementById('stockForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        date: document.getElementById('date').value,
+        item_name: document.getElementById('item_name').value,
+        current_stock: parseFloat(document.getElementById('current_stock').value)
+    };
+    
+    fetch('/api/add_stock', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            document.getElementById('stockForm').reset();
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+});
+
+// Handle delivery form submission
+document.getElementById('deliveryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        date: document.getElementById('delivery_date').value,
+        item_name: document.getElementById('delivery_item').value,
+        delivery_amount: parseFloat(document.getElementById('delivery_amount').value),
+        notes: document.getElementById('delivery_notes').value
+    };
+    
+    fetch('/api/add_delivery', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            document.getElementById('deliveryForm').reset();
+            document.getElementById('delivery_date').value = new Date().toISOString().split('T')[0];
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+});
+</script>
+{% endblock %}
