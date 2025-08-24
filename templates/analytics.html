@@ -16,7 +16,15 @@
 <div class="card mb-4">
     <div class="card-header item-toggle-header" data-item="{{ item.item_name|replace(' ', '_') }}" style="cursor: pointer;">
         <div class="d-flex justify-content-between align-items-center">
-            <h5><i class="bi bi-box"></i> {{ item.item_name }}</h5>
+            <div class="d-flex align-items-center">
+                <h5 class="mb-0"><i class="bi bi-box"></i> {{ item.item_name }}</h5>
+                {% for rec in recommendations %}
+                    {% if rec.Item_Name == item.item_name %}
+                        <span class="badge ms-2 bg-{{ 'danger' if rec.Urgency == 'CRITICAL' else 'warning' if rec.Urgency == 'HIGH' else 'info' if rec.Urgency == 'MEDIUM' else 'secondary' if rec.Urgency == 'LOW' else 'success' }}">{{ rec.Urgency }}</span>
+                        {% break %}
+                    {% endif %}
+                {% endfor %}
+            </div>
             <i class="bi bi-chevron-down toggle-icon"></i>
         </div>
         <div class="row text-center mt-2">
@@ -59,18 +67,37 @@
         {% endif %}
         
         <div class="row mt-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <h6 class="text-muted">Inventory Status</h6>
                 <ul class="list-unstyled">
                     <li><strong>Current Stock:</strong> {{ "%.1f"|format(item.current_stock) }} {{ item.unit }}</li>
                     <li><strong>Minimum Threshold:</strong> {{ "%.1f"|format(item.min_threshold) }} {{ item.unit }}</li>
                     <li><strong>Maximum Capacity:</strong> {{ "%.1f"|format(item.max_capacity) }} {{ item.unit }}</li>
                 </ul>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <h6 class="text-muted">Usage Analytics</h6>
                 <ul class="list-unstyled">
                     <li><strong>Average Daily Usage:</strong> {{ "%.2f"|format(item.avg_daily_consumption) }} {{ item.unit }}/day</li>
-                    <li><strong>Estimated Runout:</strong> {{ item.runout_date }}</li>
+                    <li><strong>Estimated Runout:</strong> {{ item.runout_date }} ({{ "%.1f"|format(item.days_remaining) }} days remaining)</li>
                     <li><strong>Data Points Used:</strong> {{ item.data_points }} days</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-muted">Ordering Information</h6>
+                <ul class="list-unstyled">
+                    {% for rec in recommendations %}
+                        {% if rec.Item_Name == item.item_name %}
+                            <li><strong>Recommended Order:</strong> {{ "%.1f"|format(rec.Recommended_Quantity) }} {{ item.unit }}</li>
+                            <li><strong>Lead Time:</strong> {{ rec.Lead_Time_Days }} days</li>
+                            <li><strong>Target Stock Level:</strong> {{ "%.1f"|format(rec.Target_Stock_Level) }} {{ item.unit }}</li>
+                            {% break %}
+                        {% endif %}
+                    {% else %}
+                        <li><strong>Order Status:</strong> No order needed</li>
+                        <li><strong>Lead Time:</strong> {{ item.lead_time_days }} days</li>
+                        <li><strong>Stock Status:</strong> Sufficient</li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>
