@@ -131,11 +131,11 @@
 (function() {
     const ctx{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
     const chartData{{ loop.index }} = {
-        labels: {{ item.chart_dates|safe }},
+        labels: {{ item.chart_dates|tojson }},
         datasets: {
             consumption: {
                 label: 'Daily Consumption ({{ item.unit }})',
-                data: {{ item.chart_consumption|safe }},
+                data: {{ item.chart_consumption|tojson }},
                 borderColor: 'rgb(75, 192, 192)',
                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
                 tension: 0.1,
@@ -144,7 +144,7 @@
             },
             stock: {
                 label: 'Stock Level ({{ item.unit }})',
-                data: {{ item.chart_stock_levels|safe }},
+                data: {{ item.chart_stock_levels|tojson }},
                 borderColor: 'rgb(99, 102, 241)',
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
                 tension: 0.1,
@@ -154,7 +154,7 @@
         }
     };
     
-    const deliveryMarkers{{ loop.index }} = {{ item.delivery_markers|safe }};
+    const deliveryMarkers{{ loop.index }} = {{ item.delivery_markers|tojson }};
     
     let chart{{ loop.index }} = new Chart(ctx{{ loop.index }}, {
         type: 'line',

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -227,8 +228,8 @@ if __name__ == "__main__":
     stock_df = pd.DataFrame(stock_data)
     
     # Save to CSV files
-    consumption_df.to_csv('data/daily_consumption.csv', index=False)
-    stock_df.to_csv('data/daily_stock_levels.csv', index=False)
+    consumption_df.to_csv(os.path.join('data', 'daily_consumption.csv'), index=False)
+    stock_df.to_csv(os.path.join('data', 'daily_stock_levels.csv'), index=False)
     
     print(f"Generated {len(consumption_data)} consumption records")
     print(f"Generated {len(stock_data)} stock level records")

@@ -117,7 +117,8 @@ class InventoryEngine:
                 # - If no recorded delivery, something is wrong with the data
                 if consumption < 0:
                     if delivery_amount > 0:
-                        # There was a delivery, consumption should be 0
+                        # Stock increased more than delivery accounts for -- adjust delivery to match actual change
+                        delivery_amount = current_stock - previous_stock
                         consumption = 0
                     else:
                         # No delivery recorded but stock increased - this indicates missing delivery data
@@ -199,33 +200,42 @@ class InventoryEngine:
             recent_consumption = item_consumption[
                 pd.to_datetime(item_consumption['Date']).dt.date >= cutoff_date
             ]
-            
+
+            # Fall back to all available data if nothing in the lookback window
+            using_stale_data = recent_consumption.empty and not item_consumption.empty
+            if using_stale_data:
+                recent_consumption = item_consumption.copy()
+
             if recent_consumption.empty:
                 avg_daily_consumption = 0
                 consumption_data_points = 0
             else:
                 avg_daily_consumption = recent_consumption['Consumption'].mean()
                 consumption_data_points = len(recent_consumption)
-            
+
             # Calculate days remaining
             if avg_daily_consumption > 0:
                 days_remaining = current_stock / avg_daily_consumption
             else:
                 days_remaining = 999  # Essentially infinite if no consumption
-            
+
             # Calculate forecast confidence
-            if consumption_data_points >= 7:
+            if using_stale_data:
+                confidence = "Low"
+            elif consumption_data_points >= 7:
                 confidence = "High"
             elif consumption_data_points >= 3:
                 confidence = "Medium"
             else:
                 confidence = "Low"
             
-            # Get consumption history for last 14 days (for charts)
+            # Get consumption history for charts (last 14 days, or last 14 data points if data is older)
             last_14_days = today - timedelta(days=14)
             chart_data = item_consumption[
                 pd.to_datetime(item_consumption['Date']).dt.date >= last_14_days
             ].copy()
+            if chart_data.empty and not item_consumption.empty:
+                chart_data = item_consumption.tail(14).copy()
             
             chart_dates = chart_data['Date'].dt.strftime('%Y-%m-%d').tolist()
             chart_consumption = chart_data['Consumption'].round(2).tolist()

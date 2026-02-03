@@ -332,7 +332,7 @@ def main():
     print(report)
     
     # Also save report to file
-    with open('audit_report.txt', 'w') as f:
+    with open('audit_report.txt', 'w', encoding='utf-8') as f:
         f.write(report)
     print(f"\nAudit report saved to: audit_report.txt")
 

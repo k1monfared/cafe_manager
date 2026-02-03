@@ -136,7 +136,7 @@ def analytics():
                     chart_consumption_raw = str(row['Chart_Consumption']) if pd.notna(row['Chart_Consumption']) else ''
                     
                     chart_dates = chart_dates_raw.split('|') if chart_dates_raw else []
-                    chart_consumption = [float(x) for x in chart_consumption_raw.split('|')] if chart_consumption_raw else []
+                    chart_consumption = [float(x) for x in chart_consumption_raw.split('|') if x.strip() and x.strip().lower() != 'nan'] if chart_consumption_raw else []
                     
                     # Get stock levels for the same dates
                     chart_stock_levels = []
@@ -408,7 +408,7 @@ def upload_csv():
             shutil.copy2(file_path, backup_path)
         
         # Save new content
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
         # Recalculate everything if it's data that affects analytics
