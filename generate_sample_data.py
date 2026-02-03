@@ -146,6 +146,15 @@ def generate_sample_data_for_items(items_config, start_date, num_weeks=4):
             consumption_data, deliveries
         )
         
+        # Collect delivery data for export
+        for delivery_date, del_amount in deliveries.items():
+            all_delivery_data.append({
+                'Date': delivery_date.strftime('%Y-%m-%d'),
+                'Item_Name': item_name,
+                'Delivery_Amount': round(del_amount, 1),
+                'Notes': ''
+            })
+
         # Prepare data for CSV
         for date, consumption in consumption_data:
             delivery_amount = deliveries.get(date, 0)
@@ -179,7 +188,7 @@ def generate_sample_data_for_items(items_config, start_date, num_weeks=4):
                 'Current_Stock': int(max(0, stock_level))
             })
     
-    return all_consumption_data, all_stock_data
+    return all_consumption_data, all_stock_data, all_delivery_data
 
 if __name__ == "__main__":
     # Define sample items
@@ -216,21 +225,21 @@ if __name__ == "__main__":
         }
     ]
     
-    # Generate data starting from 4 weeks ago
-    start_date = datetime(2025, 7, 28)  # 4 weeks before 2025-08-25
-    
-    consumption_data, stock_data = generate_sample_data_for_items(
+    # Generate data for the last 4 weeks up to today
+    start_date = (datetime.now() - timedelta(weeks=4)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    consumption_data, stock_data, delivery_data = generate_sample_data_for_items(
         items_config, start_date, num_weeks=4
     )
-    
+
     # Create DataFrames
-    consumption_df = pd.DataFrame(consumption_data)
     stock_df = pd.DataFrame(stock_data)
-    
-    # Save to CSV files
-    consumption_df.to_csv(os.path.join('data', 'daily_consumption.csv'), index=False)
+    delivery_df = pd.DataFrame(delivery_data).sort_values(['Item_Name', 'Date'])
+
+    # Save to CSV files (stock and deliveries only -- consumption is derived by the engine)
     stock_df.to_csv(os.path.join('data', 'daily_stock_levels.csv'), index=False)
-    
-    print(f"Generated {len(consumption_data)} consumption records")
+    delivery_df.to_csv(os.path.join('data', 'deliveries.csv'), index=False)
+
     print(f"Generated {len(stock_data)} stock level records")
-    print("Data saved to data/daily_consumption.csv and data/daily_stock_levels.csv")
+    print(f"Generated {len(delivery_data)} delivery records")
+    print("Data saved to data/daily_stock_levels.csv and data/deliveries.csv")

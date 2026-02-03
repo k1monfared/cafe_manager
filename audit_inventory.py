@@ -41,6 +41,8 @@ class InventoryAuditor:
             'missing_stock_records': [],
             'negative_values': [],
             'missing_deliveries': [],
+            'unrecorded_deliveries': [],
+            'delivery_shortfalls': [],
             'data_validation_errors': []
         }
         
@@ -90,12 +92,72 @@ class InventoryAuditor:
                     'issue': 'Previous stock cannot be negative'
                 })
 
+        # Delivery name → stock name mapping (must stay in sync with inventory_engine.py)
+        item_mapping = {
+            'House Blend Coffee': 'Coffee Beans',
+            'Whole Milk': 'Milk',
+            '12oz Paper Cups': 'Paper Cups',
+            'Test Coffee': 'Coffee Beans',
+            'Test Milk': 'Milk',
+            'Vanilla Syrup': 'Sugar'
+        }
+
         # Group by item for sequential analysis
         for item in consumption_df['Item_Name'].unique():
             item_consumption = consumption_df[consumption_df['Item_Name'] == item].sort_values('Date')
             item_stock = stock_df[stock_df['Item_Name'] == item].sort_values('Date')
-            item_deliveries = deliveries_df[deliveries_df['Item_Name'] == item].sort_values('Date')
-            
+
+            # Gather deliveries including mapped delivery names
+            mapped_delivery_dfs = []
+            for delivery_name, stock_name in item_mapping.items():
+                if stock_name == item:
+                    mapped_delivery_dfs.append(deliveries_df[deliveries_df['Item_Name'] == delivery_name])
+            exact_match = deliveries_df[deliveries_df['Item_Name'] == item]
+            if not exact_match.empty:
+                mapped_delivery_dfs.append(exact_match)
+            item_deliveries = pd.concat(mapped_delivery_dfs, ignore_index=True).sort_values('Date') if mapped_delivery_dfs else pd.DataFrame(columns=deliveries_df.columns)
+
+            # Check for stock increases not fully covered by deliveries
+            for i in range(1, len(item_stock)):
+                current_date = item_stock.iloc[i]['Date']
+                current_stock_val = item_stock.iloc[i]['Current_Stock']
+                previous_stock_val = item_stock.iloc[i-1]['Current_Stock']
+                stock_increase = current_stock_val - previous_stock_val
+
+                if stock_increase > self.tolerance:
+                    delivery_on_date = item_deliveries[item_deliveries['Date'] == current_date]
+                    delivery_amount = delivery_on_date['Delivery_Amount'].sum() if not delivery_on_date.empty else 0
+
+                    if delivery_amount < stock_increase - self.tolerance:
+                        if delivery_amount == 0:
+                            # No delivery recorded at all -- entire stock increase is unaccounted for
+                            issues['unrecorded_deliveries'].append({
+                                'date': current_date.strftime('%Y-%m-%d'),
+                                'item': item,
+                                'min_delivery': round(stock_increase, 2),
+                                'stock_increase': round(stock_increase, 2),
+                                'expected_stock': round(stock_increase, 2),
+                                'actual_stock': 0,
+                                'difference': round(stock_increase, 2),
+                                'note': f'Stock {round(previous_stock_val, 2)} -> {round(current_stock_val, 2)}',
+                                'issue': f'No delivery recorded but stock increased by {round(stock_increase, 2)}'
+                            })
+                        else:
+                            # Delivery exists but doesn't cover the full increase
+                            shortfall = round(stock_increase - delivery_amount, 2)
+                            issues['delivery_shortfalls'].append({
+                                'date': current_date.strftime('%Y-%m-%d'),
+                                'item': item,
+                                'stock_increase': round(stock_increase, 2),
+                                'delivery_amount': round(delivery_amount, 2),
+                                'shortfall': shortfall,
+                                'expected_stock': round(delivery_amount, 2),
+                                'actual_stock': round(stock_increase, 2),
+                                'difference': shortfall,
+                                'note': f'Stock +{round(stock_increase, 2)}, delivery {round(delivery_amount, 2)}',
+                                'issue': f'Stock increased by {round(stock_increase, 2)} but delivery was only {round(delivery_amount, 2)} (shortfall: {shortfall})'
+                            })
+
             # Check each consumption record
             for idx, row in item_consumption.iterrows():
                 date = row['Date']
@@ -202,6 +264,29 @@ class InventoryAuditor:
                     report.append(f"Issue: {missing['issue']}")
                     report.append("")
             
+            # Unrecorded deliveries
+            if issues['unrecorded_deliveries']:
+                report.append(f"UNRECORDED DELIVERIES ({len(issues['unrecorded_deliveries'])}):")
+                report.append("-" * 40)
+                report.append(f"{'Date':<12} {'Item':<18} {'Min Delivery':>12}")
+                report.append(f"{'-'*12} {'-'*18} {'-'*12}")
+                for ud in sorted(issues['unrecorded_deliveries'], key=lambda x: x['date']):
+                    report.append(f"{ud['date']:<12} {ud['item']:<18} {ud['min_delivery']:>12}")
+                report.append("")
+
+            # Delivery shortfalls
+            if issues['delivery_shortfalls']:
+                report.append(f"DELIVERY SHORTFALLS ({len(issues['delivery_shortfalls'])}):")
+                report.append("-" * 40)
+                for shortfall in issues['delivery_shortfalls']:
+                    report.append(f"Date: {shortfall['date']}")
+                    report.append(f"Item: {shortfall['item']}")
+                    report.append(f"Stock Increase: {shortfall['stock_increase']}")
+                    report.append(f"Delivery Amount: {shortfall['delivery_amount']}")
+                    report.append(f"Unaccounted: {shortfall['shortfall']}")
+                    report.append(f"Issue: {shortfall['issue']}")
+                    report.append("")
+
             # Calculation errors
             if issues['calculation_errors']:
                 report.append(f"CALCULATION ERRORS ({len(issues['calculation_errors'])}):")
@@ -290,6 +375,8 @@ class InventoryAuditor:
         severity_map = {
             'data_validation_errors': 'Critical',
             'missing_deliveries': 'High',
+            'unrecorded_deliveries': 'High',
+            'delivery_shortfalls': 'High',
             'calculation_errors': 'Medium',
             'missing_stock_records': 'High',
             'negative_values': 'Critical'
@@ -306,6 +393,10 @@ class InventoryAuditor:
             return f"Delivery of {issue.get('delivery_in_file')} not reflected in consumption data"
         elif issue_type == 'missing_stock_records':
             return f"No stock record found for consumption entry"
+        elif issue_type == 'unrecorded_deliveries':
+            return f"No delivery recorded -- stock increased by {issue.get('stock_increase')}. Minimum delivery needed: {issue.get('min_delivery')}"
+        elif issue_type == 'delivery_shortfalls':
+            return f"Delivery shortfall: stock increased by {issue.get('stock_increase')} but only {issue.get('delivery_amount')} delivered (unaccounted: {issue.get('shortfall')})"
         elif issue_type == 'negative_values':
             return f"Negative stock value detected: {issue.get('issue')}"
         else:

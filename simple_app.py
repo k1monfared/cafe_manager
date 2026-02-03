@@ -197,21 +197,34 @@ def analytics():
                                         'date': date_str
                                     })
                     
+                    # Generate 14-day stock level forecast projection
+                    forecast_dates = []
+                    forecast_stock = []
+                    forecast_start = pd.to_datetime(chart_dates[-1]) if chart_dates else pd.Timestamp.now()
+                    projected_stock = float(row['Current_Stock'])
+                    avg_consumption = float(row['Avg_Daily_Consumption'])
+                    for day in range(1, 15):
+                        projected_stock = max(0, projected_stock - avg_consumption)
+                        forecast_dates.append((forecast_start + pd.Timedelta(days=day)).strftime('%Y-%m-%d'))
+                        forecast_stock.append(round(projected_stock, 1))
+
                     forecast_data.append({
-                        'item_name': item_name,
-                        'current_stock': row['Current_Stock'],
-                        'unit': row['Unit'],
-                        'min_threshold': row['Min_Threshold'],
-                        'max_capacity': row['Max_Capacity'],
-                        'avg_daily_consumption': row['Avg_Daily_Consumption'],
-                        'days_remaining': row['Days_Remaining'],
-                        'runout_date': row['Runout_Date'],
-                        'confidence': row['Confidence'],
-                        'data_points': row['Data_Points_Used'],
+                        'item_name': str(item_name),
+                        'current_stock': float(row['Current_Stock']),
+                        'unit': str(row['Unit']),
+                        'min_threshold': float(row['Min_Threshold']),
+                        'max_capacity': float(row['Max_Capacity']),
+                        'avg_daily_consumption': float(row['Avg_Daily_Consumption']),
+                        'days_remaining': float(row['Days_Remaining']),
+                        'runout_date': str(row['Runout_Date']),
+                        'confidence': str(row['Confidence']),
+                        'data_points': int(row['Data_Points_Used']),
                         'chart_dates': chart_dates,
                         'chart_consumption': chart_consumption,
                         'chart_stock_levels': chart_stock_levels,
-                        'delivery_markers': delivery_markers
+                        'delivery_markers': delivery_markers,
+                        'forecast_dates': forecast_dates,
+                        'forecast_stock': forecast_stock
                     })
         except FileNotFoundError:
             pass
@@ -261,6 +274,7 @@ def audit_results_page():
         audit_summary = None
         all_clear = False
         issues_by_severity = {}
+        missing_deliveries_table = []
         item_status = []
         
         try:
@@ -276,8 +290,11 @@ def audit_results_page():
                     if not stock_df.empty:
                         item_status = stock_df['Item_Name'].unique().tolist()
                 else:
-                    # Group issues by severity
+                    # Group issues by severity; pull unrecorded deliveries into a dedicated table
                     for result in audit_results:
+                        if result['Issue_Type'] == 'Unrecorded Deliveries':
+                            missing_deliveries_table.append(result)
+                            continue
                         severity = result['Severity']
                         if severity not in issues_by_severity:
                             issues_by_severity[severity] = []
@@ -336,6 +353,7 @@ def audit_results_page():
                              audit_summary=audit_summary,
                              all_clear=all_clear,
                              issues_by_severity=issues_by_severity,
+                             missing_deliveries_table=missing_deliveries_table,
                              item_status=item_status,
                              recommendations=recommendations)
                              
@@ -346,6 +364,7 @@ def audit_results_page():
                              audit_summary=None,
                              all_clear=True,
                              issues_by_severity={},
+                             missing_deliveries_table=[],
                              item_status=[],
                              recommendations=[])
 

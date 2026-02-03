@@ -1,17 +1,19 @@
 Item_Name,Current_Stock,Recommended_Quantity,Unit,Urgency,Days_Remaining,Urgency_Reason,Detailed_Explanation,Target_Stock_Level,Lead_Time_Days,Avg_Daily_Usage,Generated_Date
-Coffee Beans,256,0.0,lbs,GOOD,12.5,"Stock level is good, no action needed","Current stock: 256.0 lbs
-Daily usage: 20.5 lbs/day (14-day average)
-Days remaining: 12.5 days
+Coffee Beans,37,84.2,lbs,CRITICAL,1.4,"Will run out in 1.4 days, but supplier needs 3 days","Current stock: 37.0 lbs
+Daily usage: 27.1 lbs/day (14-day average)
+Days remaining: 1.4 days
 Lead time: 3 days
 Minimum threshold: 2.0 lbs
 Maximum capacity: 50.0 lbs
 
-Status: Stock level is sufficient. Current stock exceeds target level.
-No order needed at this time.
+Calculation:
+- Target stock level: 40.0 lbs (80% of capacity)
+- Expected consumption during 3-day delivery: 81.2 lbs
+- Recommended order: 84.2 lbs
 
-Reason: Stock level is good, no action needed",40.0,3,20.52,2026-02-02 22:39:02
-Milk,0,43.5,gallons,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 1 days","Current stock: 0.0 gallons
-Daily usage: 19.5 gallons/day (14-day average)
+Reason: Will run out in 1.4 days, but supplier needs 3 days",40.0,3,27.07,2026-02-02 23:13:31
+Milk,0,32.6,gallons,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 1 days","Current stock: 0.0 gallons
+Daily usage: 8.6 gallons/day (14-day average)
 Days remaining: 0.0 days
 Lead time: 1 days
 Minimum threshold: 3.0 gallons
@@ -19,25 +21,25 @@ Maximum capacity: 30.0 gallons
 
 Calculation:
 - Target stock level: 24.0 gallons (80% of capacity)
-- Expected consumption during 1-day delivery: 19.5 gallons
-- Recommended order: 43.5 gallons
+- Expected consumption during 1-day delivery: 8.6 gallons
+- Recommended order: 32.6 gallons
 
-Reason: Will run out in 0.0 days, but supplier needs 1 days",24.0,1,19.52,2026-02-02 22:39:02
-Paper Cups,0,794.1,cases,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 7 days","Current stock: 0.0 cases
-Daily usage: 90.6 cases/day (14-day average)
-Days remaining: 0.0 days
+Reason: Will run out in 0.0 days, but supplier needs 1 days",24.0,1,8.57,2026-02-02 23:13:31
+Paper Cups,649,381.7,cases,CRITICAL,5.2,"Will run out in 5.2 days, but supplier needs 7 days","Current stock: 649.0 cases
+Daily usage: 124.4 cases/day (14-day average)
+Days remaining: 5.2 days
 Lead time: 7 days
 Minimum threshold: 5.0 cases
 Maximum capacity: 200.0 cases
 
 Calculation:
 - Target stock level: 160.0 cases (80% of capacity)
-- Expected consumption during 7-day delivery: 634.1 cases
-- Recommended order: 794.1 cases
+- Expected consumption during 7-day delivery: 870.7 cases
+- Recommended order: 381.7 cases
 
-Reason: Will run out in 0.0 days, but supplier needs 7 days",160.0,7,90.59,2026-02-02 22:39:02
-Pastries,0,35.6,dozen,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 2 days","Current stock: 0.0 dozen
-Daily usage: 7.8 dozen/day (14-day average)
+Reason: Will run out in 5.2 days, but supplier needs 7 days",160.0,7,124.39,2026-02-02 23:13:31
+Pastries,0,28.8,dozen,CRITICAL,0.0,"Will run out in 0.0 days, but supplier needs 2 days","Current stock: 0.0 dozen
+Daily usage: 4.4 dozen/day (14-day average)
 Days remaining: 0.0 days
 Lead time: 2 days
 Minimum threshold: 2.0 dozen
@@ -45,20 +47,18 @@ Maximum capacity: 25.0 dozen
 
 Calculation:
 - Target stock level: 20.0 dozen (80% of capacity)
-- Expected consumption during 2-day delivery: 15.6 dozen
-- Recommended order: 35.6 dozen
+- Expected consumption during 2-day delivery: 8.8 dozen
+- Recommended order: 28.8 dozen
 
-Reason: Will run out in 0.0 days, but supplier needs 2 days",20.0,2,7.81,2026-02-02 22:39:02
-Sugar,37,13.5,lbs,CRITICAL,4.8,"Will run out in 4.8 days, but supplier needs 5 days","Current stock: 37.0 lbs
-Daily usage: 7.7 lbs/day (14-day average)
-Days remaining: 4.8 days
+Reason: Will run out in 0.0 days, but supplier needs 2 days",20.0,2,4.41,2026-02-02 23:13:31
+Sugar,195,0.0,lbs,GOOD,23.8,"Stock level is good, no action needed","Current stock: 195.0 lbs
+Daily usage: 8.2 lbs/day (14-day average)
+Days remaining: 23.8 days
 Lead time: 5 days
 Minimum threshold: 1.0 lbs
 Maximum capacity: 15.0 lbs
 
-Calculation:
-- Target stock level: 12.0 lbs (80% of capacity)
-- Expected consumption during 5-day delivery: 38.5 lbs
-- Recommended order: 13.5 lbs
+Status: Stock level is sufficient. Current stock exceeds target level.
+No order needed at this time.
 
-Reason: Will run out in 4.8 days, but supplier needs 5 days",12.0,5,7.7,2026-02-02 22:39:02
+Reason: Stock level is good, no action needed",12.0,5,8.21,2026-02-02 23:13:31

@@ -130,8 +130,9 @@
 {% if item.chart_dates and item.chart_consumption %}
 (function() {
     const ctx{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
+    const historicalLabels{{ loop.index }} = {{ item.chart_dates|tojson }};
+    const allLabels{{ loop.index }} = historicalLabels{{ loop.index }}.concat({{ item.forecast_dates|tojson }});
     const chartData{{ loop.index }} = {
-        labels: {{ item.chart_dates|tojson }},
         datasets: {
             consumption: {
                 label: 'Daily Consumption ({{ item.unit }})',
@@ -150,16 +151,27 @@
                 tension: 0.1,
                 fill: false,
                 type: 'line'
+            },
+            forecast: {
+                label: 'Projected Stock ({{ item.unit }})',
+                data: Array(historicalLabels{{ loop.index }}.length).fill(null).concat({{ item.forecast_stock|tojson }}),
+                borderColor: 'rgb(255, 159, 64)',
+                backgroundColor: 'rgba(255, 159, 64, 0.05)',
+                borderDash: [6, 3],
+                tension: 0.1,
+                fill: false,
+                type: 'line',
+                pointRadius: 0
             }
         }
     };
-    
+
     const deliveryMarkers{{ loop.index }} = {{ item.delivery_markers|tojson }};
-    
+
     let chart{{ loop.index }} = new Chart(ctx{{ loop.index }}, {
         type: 'line',
         data: {
-            labels: chartData{{ loop.index }}.labels,
+            labels: historicalLabels{{ loop.index }},
             datasets: [chartData{{ loop.index }}.datasets.consumption]
         },
         options: {
@@ -197,12 +209,12 @@
             afterDatasetsDraw: function(chart) {
                 const ctx = chart.ctx;
                 const chartArea = chart.chartArea;
-                
+
                 deliveryMarkers{{ loop.index }}.forEach(function(marker) {
                     const x = chart.scales.x.getPixelForValue(marker.x);
                     const yBottom = chartArea.bottom;
                     const yTop = chartArea.top;
-                    
+
                     // Draw vertical line
                     ctx.save();
                     ctx.beginPath();
@@ -212,7 +224,7 @@
                     ctx.strokeStyle = 'rgba(255, 99, 132, 0.8)';
                     ctx.setLineDash([5, 5]);
                     ctx.stroke();
-                    
+
                     // Draw delivery amount label
                     ctx.fillStyle = 'rgba(255, 99, 132, 0.9)';
                     ctx.font = '12px Arial';
@@ -222,28 +234,37 @@
             }
         }]
     });
-    
+
     function updateChart{{ loop.index }}(type) {
         let datasets = [];
-        
+
         switch(type) {
             case 'consumption':
+                chart{{ loop.index }}.data.labels = historicalLabels{{ loop.index }};
                 datasets = [chartData{{ loop.index }}.datasets.consumption];
+                chart{{ loop.index }}.options.plugins.legend.display = false;
                 break;
             case 'stock':
-                datasets = [chartData{{ loop.index }}.datasets.stock];
+                chart{{ loop.index }}.data.labels = allLabels{{ loop.index }};
+                datasets = [
+                    chartData{{ loop.index }}.datasets.stock,
+                    chartData{{ loop.index }}.datasets.forecast
+                ];
+                chart{{ loop.index }}.options.plugins.legend.display = true;
                 break;
             case 'combined':
-                // Use dual y-axis for combined view
+                chart{{ loop.index }}.data.labels = allLabels{{ loop.index }};
                 datasets = [
                     {...chartData{{ loop.index }}.datasets.consumption, yAxisID: 'y'},
-                    {...chartData{{ loop.index }}.datasets.stock, yAxisID: 'y1'}
+                    {...chartData{{ loop.index }}.datasets.stock, yAxisID: 'y1'},
+                    {...chartData{{ loop.index }}.datasets.forecast, yAxisID: 'y1'}
                 ];
+                chart{{ loop.index }}.options.plugins.legend.display = true;
                 break;
         }
-        
+
         chart{{ loop.index }}.data.datasets = datasets;
-        
+
         // Update scales for combined view
         if (type === 'combined') {
             chart{{ loop.index }}.options.scales.y1 = {
@@ -263,19 +284,19 @@
             delete chart{{ loop.index }}.options.scales.y1;
             chart{{ loop.index }}.options.scales.y.title.text = 'Amount ({{ item.unit }})';
         }
-        
+
         chart{{ loop.index }}.update();
     }
-    
+
     // Add event listeners for toggle buttons
     document.getElementById('consumption{{ loop.index }}').addEventListener('change', function() {
         if (this.checked) updateChart{{ loop.index }}('consumption');
     });
-    
+
     document.getElementById('stock{{ loop.index }}').addEventListener('change', function() {
         if (this.checked) updateChart{{ loop.index }}('stock');
     });
-    
+
     document.getElementById('combined{{ loop.index }}').addEventListener('change', function() {
         if (this.checked) updateChart{{ loop.index }}('combined');
     });
