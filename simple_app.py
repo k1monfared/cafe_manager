@@ -8,15 +8,23 @@ import pandas as pd
 from datetime import datetime, timedelta
 from inventory_engine import InventoryEngine
 import json
+import sys
 import os
 import webbrowser
 import threading
 
-app = Flask(__name__)
+# Resolve base directory so templates and data are found whether running
+# as a normal script or as a PyInstaller bundle
+if getattr(sys, 'frozen', False):
+    base_dir = os.path.dirname(sys.executable)
+else:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, template_folder=os.path.join(base_dir, 'templates'))
 app.secret_key = 'simple-inventory-2025'
 
 # Initialize inventory engine
-engine = InventoryEngine()
+engine = InventoryEngine(data_dir=os.path.join(base_dir, 'data'))
 
 @app.route('/')
 def dashboard():

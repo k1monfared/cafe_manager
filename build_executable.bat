@@ -27,21 +27,14 @@ if errorlevel 1 (
 
 echo.
 echo 🔨 Building executable...
-echo This may take several minutes...
+echo    This may take several minutes...
 echo.
 
-REM Create the executable
-pyinstaller --onefile --windowed --name "CafeManager" ^
-    --add-data "templates;templates" ^
-    --add-data "data;data" ^
-    --hidden-import "pandas" ^
-    --hidden-import "flask" ^
-    --hidden-import "webbrowser" ^
-    --hidden-import "threading" ^
-    simple_app.py
+REM Build using the spec file (produces dist\CafeManager\ folder)
+pyinstaller cafe_manager.spec
 
 if errorlevel 1 (
-    echo ❌ Build failed
+    echo ❌ Build failed. Check the output above for details.
     pause
     exit /b 1
 )
@@ -49,11 +42,11 @@ if errorlevel 1 (
 echo.
 echo ✅ Build completed!
 echo.
-echo 📁 Executable created at: dist\CafeManager.exe
+echo 📁 Distributable folder: dist\CafeManager
 echo.
-echo 📋 To distribute:
-echo    1. Copy the entire 'dist' folder
-echo    2. Include the 'data' folder with your CSV files
-echo    3. Users can run CafeManager.exe directly
+echo    To share with others:
+echo       1. Copy the entire "dist\CafeManager" folder
+echo       2. Recipient double-clicks CafeManager.exe inside it
+echo       3. No Python or other software needed
 echo.
 pause
